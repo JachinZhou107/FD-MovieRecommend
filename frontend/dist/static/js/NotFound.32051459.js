@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkfrontend"]=self["webpackChunkfrontend"]||[]).push([[187],{1408:function(n,t,u){u.r(t),u.d(t,{default:function(){return l}});var e=u(3396);const r=(0,e._)("h1",null,"404 Not Found",-1),o=[r];function c(n,t,u,r,c,d){return(0,e.wg)(),(0,e.iD)("div",null,o)}var d={name:"NotFound"},f=u(89);const a=(0,f.Z)(d,[["render",c]]);var l=a}}]);
+//# sourceMappingURL=NotFound.32051459.js.map
