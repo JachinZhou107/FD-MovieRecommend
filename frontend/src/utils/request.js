@@ -2,7 +2,8 @@ import axios from 'axios'
 
 const instance = axios.create({
     baseURL: 'http://127.0.0.1:8000',
-    timeout: 20000
+    timeout: 20000,
+    withCredentials: true
 })
 
 export const post = (url,data) => {

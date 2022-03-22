@@ -3,10 +3,18 @@ from django.shortcuts import render
 # Create your views here.
 from django.views.decorators.http import require_http_methods
 from django.core import serializers
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 import json
 
 from .models import Movie
+
+
+def login(request):
+    response = {}
+    if request.method == 'GET':
+        if 'username' in request.session:
+            return HttpResponseRedirect('')
+
 
 @require_http_methods(["GET"])
 def add_movie(request):
@@ -21,13 +29,14 @@ def add_movie(request):
         response['error'] = 1
     return JsonResponse(response)
 
+
 @require_http_methods(['GET'])
 def show_movies(request):
     response = {}
     try:
         movies = Movie.objects.filter()
-        print(serializers.serialize("json",movies))
-        response['list'] = json.loads(serializers.serialize("json",movies))
+        print(serializers.serialize("json", movies))
+        response['list'] = json.loads(serializers.serialize("json", movies))
         response['msg'] = 'success'
         response['error'] = 0
     except Exception as e:

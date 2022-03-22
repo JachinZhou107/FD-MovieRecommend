@@ -1,12 +1,12 @@
 <template>
   <a-layout style="height: 800px;">
-      <a-layout-header><h3>{{msg}}</h3></a-layout-header>
-      <a-layout>
-        <a-layout-content>Body</a-layout-content>
-        <a-layout-sider>Sider</a-layout-sider>
-      </a-layout>
-      <a-layout-footer>Footer</a-layout-footer>
+    <a-layout-header><h3>{{msg}}</h3></a-layout-header>
+    <a-layout>
+      <a-layout-content>Body</a-layout-content>
+      <a-layout-sider>Sider</a-layout-sider>
     </a-layout>
+    <a-layout-footer>Footer</a-layout-footer>
+  </a-layout>
 </template>
 
 <script>

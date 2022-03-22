@@ -1,17 +1,14 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link>
-  </nav>
   <div class="about">
     <a-table :columns="columns" :data="data"></a-table>
   </div>
 </template>
 
 <script>
-
 import {get} from "@/utils/request";
 
 export default {
+  name: 'AboutView',
   data() {
     return {
       columns: [
