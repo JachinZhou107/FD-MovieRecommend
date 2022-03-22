@@ -134,7 +134,7 @@ export default {
   border: white 1px solid;
   overflow: hidden;
   .content {
-    height: 500px;
+    height: 600px;
     width: 1360px;
     display: flex;
     flex-direction: row;
