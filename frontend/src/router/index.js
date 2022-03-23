@@ -21,19 +21,14 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/about/AboutView.vue')
   },
   {
-    path: '/login',
-    name: 'login',
-    component: () => import(/* webpackChunkName: "login" */ '../views/login/LoginView.vue')
+    path: '/account',
+    name: 'account',
+    component: () => import(/* webpackChunkName: "account" */ '../views/account/AccountView.vue')
   },
   {
     path: '/user',
     name: 'user',
     component: () => import(/* webpackChunkName: "user" */ '../views/user/UserView.vue')
-  },
-  {
-    path: '/register',
-    name: 'register',
-    component: () => import(/* webpackChunkName: "register" */ '../views/register/RegisterView.vue')
   },
   {
     path: '/:pathMatch(.*)*',
@@ -48,7 +43,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async(to, from, next) => {
-  if ( to.name === 'login' ) {
+  if ( to.name === 'account' ) {
     let isLogin = await get('/api/login_info');
     if ( isLogin.login ) {
       next({name: 'home'})

@@ -52,6 +52,8 @@ export default {
 .navbar {
   display: flex;
   justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
   .navbarBox {
     flex-grow: 1;
     text-align: left;

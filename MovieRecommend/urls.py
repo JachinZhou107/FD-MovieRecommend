@@ -21,10 +21,10 @@ from django.views.generic import TemplateView
 import movie_recommend.urls
 import user.urls
 
-urlpatterns = {
+urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(movie_recommend.urls)),
     path('api/', include(user.urls)),
     path('', TemplateView.as_view(template_name="index.html")),
-    re_path(r'.*', TemplateView.as_view(template_name="index.html")),
-}
+    re_path(r'^(?!(api)|(admin)).*', TemplateView.as_view(template_name="index.html")),
+]
