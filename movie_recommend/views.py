@@ -25,7 +25,7 @@ def add_movie(request):
 def show_movies(request):
     response = {}
     try:
-        movies = Movie.objects.filter()[10:50]
+        movies = Movie.objects.filter()[:10]
         print(serializers.serialize("json", movies))
         response['list'] = json.loads(serializers.serialize("json", movies))
         response['msg'] = 'success'

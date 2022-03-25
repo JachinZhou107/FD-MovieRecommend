@@ -48,7 +48,13 @@ router.beforeEach(async(to, from, next) => {
     if ( isLogin.login ) {
       next({name: 'home'})
     } else next()
-  } else next()
+  } else if ( to.name === 'user' ) {
+    let isLogin = await get('/api/login_info');
+    if ( isLogin.login ) {
+      next()
+    } else next({name: 'account'})
+  }
+  else next()
 })
 
 export default router

@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <a-layout>
-      <a-layout-content>
+      <a-layout-content class="content">
         <a-carousel
           :style="{
             width: '100%',
@@ -9,7 +9,7 @@
           }"
           :default-current="2"
           animation-name="card"
-          indicator-position="outer"
+          auto-play
           @change="log"
         >
           <a-carousel-item v-for="(image,index) in images" :key="index" style="width: 60%">
@@ -24,54 +24,12 @@
             />
           </a-carousel-item>
         </a-carousel>
+        <div class="movie-cards">
+          <MovieCard v-for="item in data" :key="item.pk" :item="item"/>
+        </div>
       </a-layout-content>
       <a-layout-sider :style="{width: '30%', maxWidth: '300px'}">
-        <a-list>
-          <a-list-item>
-            <a-list-item-meta title="蜘蛛侠：英雄归来"
-                              description="Beijing ByteDance Technology Co., Ltd."
-            >
-              <template #avatar>
-                <a-avatar shape="square">
-                  <img alt="avatar" src="https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp" />
-                </a-avatar>
-              </template>
-            </a-list-item-meta>
-          </a-list-item>
-          <a-list-item>
-            <a-list-item-meta title="钢铁侠"
-                              description="Beijing ByteDance Technology Co., Ltd."
-            >
-              <template #avatar>
-                <a-avatar shape="square">
-                  <img alt="avatar" src="https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp" />
-                </a-avatar>
-              </template>
-            </a-list-item-meta>
-          </a-list-item>
-          <a-list-item>
-            <a-list-item-meta title="尼罗河上的惨案"
-                              description="Beijing ByteDance Technology Co., Ltd."
-            >
-              <template #avatar>
-                <a-avatar shape="square">
-                  <img alt="avatar" src="https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp" />
-                </a-avatar>
-              </template>
-            </a-list-item-meta>
-          </a-list-item>
-          <a-list-item>
-            <a-list-item-meta title="阿甘正传"
-                              description="Beijing ByteDance Technology Co., Ltd."
-            >
-              <template #avatar>
-                <a-avatar shape="square">
-                  <img alt="avatar" src="https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp" />
-                </a-avatar>
-              </template>
-            </a-list-item-meta>
-          </a-list-item>
-        </a-list>
+        <SiderList></SiderList>
       </a-layout-sider>
     </a-layout>
     <a-layout-footer>Footer</a-layout-footer>
@@ -79,20 +37,53 @@
 </template>
 
 <script>
+import {get} from "@/utils/request";
+
+import SiderList from "@/views/home/SiderList";
+import MovieCard from "@/views/home/MovieCard";
+
 export default {
   name: "HomeView",
+  components: {
+    SiderList,
+    MovieCard
+  },
   data() {
     return {
       images: [
-        'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/cd7a1aaea8e1c5e3d26fe2591e561798.png~tplv-uwbnlip3yd-webp.webp',
-        'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/6480dbc69be1b5de95010289787d64f1.png~tplv-uwbnlip3yd-webp.webp',
-        'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/0265a04fddbd77a19602a15d9d55d797.png~tplv-uwbnlip3yd-webp.webp',
+        'http://127.0.0.1:8000/static/poster_1.jpg',
+        'http://127.0.0.1:8000/static/poster_2.jpg',
+        'http://127.0.0.1:8000/static/poster_3.jpg',
+        'http://127.0.0.1:8000/static/poster_4.jpg',
+        'http://127.0.0.1:8000/static/poster_5.jpg',
       ],
+      data: []
     }
-  }
+  },
+  mounted() {
+    get('/api/show_movies').then(data =>{
+      data.list.forEach((val,index) => {
+        let title = data.list[index].fields.movie_title
+        let score = data.list[index].fields.movie_score
+        data.list[index].fields.movie_title = title.replace(/.*《/g,'').replace(/》.*/g,'')
+        data.list[index].fields.movie_score = score.replace(/\/.*/g,'')
+
+      })
+      this.data = data.list.slice(0,30)
+    })
+  },
 }
 </script>
 
-<style scoped>
-
+<style lang="scss" scoped>
+.home {
+  .content {
+    margin-right: 20px;
+  }
+  .movie-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+}
 </style>

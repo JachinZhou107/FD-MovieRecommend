@@ -17,7 +17,7 @@
             <div class="switch" @click="switchMode">已有账号？去登录</div>
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" long html-type="submit">注册</a-button>
+            <a-button type="primary" long html-type="submit">注册并登录</a-button>
           </a-form-item>
           <a-form-item>
             <a-alert v-if="showRegError" type="error">{{errorMsg}}</a-alert>
@@ -31,7 +31,6 @@
               width: '100%'
             }"
             :default-current="2"
-            indicator-position="inner"
             autoPlay
           >
             <a-carousel-item v-for="(image,index) in images" :key="index" style="height: 100%">
@@ -70,26 +69,14 @@
 
 <script>
 import {post} from "@/utils/request";
-import router from "@/router";
+import {link} from "@/utils/link";
+import {useStore} from "vuex";
+import {reactive, ref} from "vue";
 
 export default {
   name: "AccountView",
   data() {
     return {
-      contentType: 'content-login',
-      loginForm: {
-        username: '',
-        password: '',
-        isStay: false,
-      },
-      regForm: {
-        username: '',
-        password_1: '',
-        password_2: '',
-      },
-      showLoginError: false,
-      showRegError: false,
-      errorMsg: '',
       images: [
         'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/cd7a1aaea8e1c5e3d26fe2591e561798.png~tplv-uwbnlip3yd-webp.webp',
         'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/6480dbc69be1b5de95010289787d64f1.png~tplv-uwbnlip3yd-webp.webp',
@@ -97,31 +84,66 @@ export default {
       ],
     }
   },
-  methods:{
-    async handleLoginSubmit(data) {
+  setup() {
+    const contentType = ref('content-login')
+    const showLoginError = ref(false)
+    const showRegError = ref(false)
+    const errorMsg = ref('')
+    const loginForm = reactive({
+        username: '',
+        password: '',
+        isStay: false,
+    })
+    const regForm = reactive({
+        username: '',
+        password_1: '',
+        password_2: '',
+    })
+    const store = useStore()
+    const handleChangeStatus = async (res) => {
+      store.commit('changeLoginStatus', {status: true})
+      store.commit('changeUser', { username: res.username, avatar: res.avatar})
+      await link('/', 'home')
+    }
+    const handleLoginSubmit = async (data) => {
       console.log(data.values)
       const res = await post('/api/login',data.values)
-      if ( !res.error ) await router.push('/')
+      if ( !res.error ) await handleChangeStatus(res)
       else {
-        this.errorMsg = res.msg
-        this.showLoginError = true
+        errorMsg.value = res.msg
+        showLoginError.value = true
       }
       console.log(res)
-    },
-    async handleRegSubmit(data) {
+    }
+    const handleRegSubmit = async (data) => {
       console.log(data.values)
       const res = await post('/api/register',data.values)
-      if ( !res.error ) this.contentType = 'content-login'
+      if ( !res.error ) {
+        contentType.value = 'content-login'
+        await handleChangeStatus(res)
+      }
       else {
-        this.errorMsg = res.msg
-        this.showRegError = true
+        errorMsg.value = res.msg
+        showRegError.value = true
       }
       console.log(res)
-    },
-    switchMode() {
-      if(this.contentType==='content-login') {
-        this.contentType = 'content-reg'
-      } else this.contentType = 'content-login'
+    }
+    const switchMode = () => {
+      console.log(errorMsg)
+      if(contentType.value == 'content-login') {
+        contentType.value = 'content-reg'
+      } else contentType.value = 'content-login'
+    }
+    return {
+      handleLoginSubmit,
+      handleRegSubmit,
+      switchMode,
+      errorMsg,
+      showRegError,
+      showLoginError,
+      contentType,
+      loginForm,
+      regForm
     }
   }
 }
@@ -150,6 +172,7 @@ export default {
       margin: 20px;
       padding: 0 20px;
       flex-grow: 1;
+      flex-basis: 0;
       .title {
         padding-bottom: 16px;
       }

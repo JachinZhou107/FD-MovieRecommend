@@ -1,12 +1,14 @@
+from datetime import datetime
 import json
-
-from django.shortcuts import render
 
 # Create your views here.
 import hashlib
+import os
+
 from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.http import require_POST, require_GET
 
+from MovieRecommend import settings
 from user.models import User
 
 
@@ -14,9 +16,6 @@ from user.models import User
 def reg(request):
     # 用户注册逻辑代码
     response = {}
-    # if request.method == 'GET':
-    #     return render(request, 'user/register.html')
-    # elif request.method == 'POST':
     # 处理提交数据
     data = json.loads(request.body)
     print(data)
@@ -62,6 +61,8 @@ def reg(request):
         try:
             user = User.objects.create(username=username, password=password_m1)
             # 注册成功后
+            response['username'] = username
+            response['avatar'] = user.avatar_url
             response['msg'] = '注册成功'
             response['error'] = 0
             # 存session
@@ -79,21 +80,6 @@ def reg(request):
 @require_POST
 # 用户的登录逻辑处理
 def login(request):
-    # 处理GET请求
-    # if request.method == 'GET':
-    #     # 1, 首先检查session，判断用户是否第一次登录，如果不是，则直接重定向到首页
-    #     if 'username' in request.session:  # request.session 类字典对象
-    #         return HttpResponseRedirect('/index/allbook')
-    #     # 2, 然后检查cookie，是否保存了用户登录信息
-    #     if 'username' in request.COOKIES:
-    #         # 若存在则赋值回session，并重定向到首页
-    #         request.session['username'] = request.COOKIES['username']
-    #         return HttpResponseRedirect('/index/allbook')
-    #     # 不存在则重定向登录页，让用户登录
-    #     return render(request, 'user/login.html')
-    # # 处理POST请求
-    # elif request.method == 'POST':
-    print(request.COOKIES)
     response = {}
     data = json.loads(request.body)
     username = data['username']
@@ -114,10 +100,12 @@ def login(request):
         response['error'] = 1
         return JsonResponse(response)
     # 返回值是个数组，并且用户名具备唯一索引，当前用户是该数组中第一个元素
-    users = users[0]
-    request.session['username'] = username
+    user = users[0]
+    response['username'] = username
+    response['avatar'] = user.avatar_url
     response['msg'] = '登录成功'
     response['error'] = 0
+    request.session['username'] = username
     resp = JsonResponse(response)
     # 检查post 提交的所有键中是否存在 isSaved 键
     print(data['isStay'])
@@ -147,11 +135,49 @@ def logout(request):
 def login_info(request):
     # 实现检查登录信息功能
     response = {}
-    if 'username' in request.session:
+    if 'username' in request.session:  # request.session 类字典对象
+        user = User.objects.get(username=request.session['username'])
+        response['avatar'] = user.avatar_url
+        response['username'] = request.session['username']
+        response['login'] = 1
+        return JsonResponse(response)
+    elif 'username' in request.COOKIES:  # 检查cookie，是否保存了用户登录信息
+        # 若存在则赋值回session
+        request.session['username'] = request.COOKIES['username']
+        user = User.objects.get(username=request.session['username'])
+        response['avatar'] = user.avatar_url
         response['username'] = request.session['username']
         response['login'] = 1
         return JsonResponse(response)
     else:
         response['username'] = ''
         response['login'] = 0
+        return JsonResponse(response)
+
+
+@require_POST
+def avatar(request):
+    # 实现上传用户头像
+    response = {}
+    if 'username' not in request.session:
+        response['msg'] = '请先登录'
+        response['error'] = 1
+        return JsonResponse(response)
+    username = request.session['username']
+    avatar = request.FILES.get('file')
+    avatar_name = datetime.now().strftime('%Y%m%d%H%M%S%f') + avatar.name
+    f = open(os.path.join(settings.UPLOAD_FILE, avatar_name), 'wb')
+    for i in avatar.chunks():
+        f.write(i)
+    f.close()
+    try:
+        user = User.objects.get(username=username)
+        user.avatar_url = 'http://127.0.0.1:8000/static/' + avatar_name
+        user.save()
+        response['msg'] = '修改头像成功'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = '未找到用户信息'
+        response['error'] = 1
         return JsonResponse(response)

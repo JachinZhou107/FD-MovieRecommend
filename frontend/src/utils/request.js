@@ -6,13 +6,13 @@ const instance = axios.create({
     withCredentials: true
 })
 
-export const post = (url,data) => {
-    return new Promise((resolve, reject) => {
-        instance.post(url, data, {
+export const post = (url,data,config = {
             headers: {
                 'Content-Type': 'application/json'
             }
-        }).then(response => {
+        }) => {
+    return new Promise((resolve, reject) => {
+        instance.post(url, data, config).then(response => {
             resolve(response.data)
         }, err => {
             reject(err)

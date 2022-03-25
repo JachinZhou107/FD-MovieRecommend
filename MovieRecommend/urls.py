@@ -26,5 +26,5 @@ urlpatterns = [
     path('api/', include(movie_recommend.urls)),
     path('api/', include(user.urls)),
     path('', TemplateView.as_view(template_name="index.html")),
-    re_path(r'^(?!(api)|(admin)).*', TemplateView.as_view(template_name="index.html")),
+    re_path(r'^(?!(api)|(admin)|(static)).*', TemplateView.as_view(template_name="index.html")),
 ]
