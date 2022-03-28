@@ -10,7 +10,6 @@
           :default-current="2"
           animation-name="card"
           auto-play
-          @change="log"
         >
           <a-carousel-item v-for="(image,index) in images" :key="index" style="width: 60%">
             <img
@@ -24,15 +23,34 @@
             />
           </a-carousel-item>
         </a-carousel>
-        <div class="movie-cards">
-          <MovieCard v-for="item in data" :key="item.pk" :item="item"/>
+        <div class="movies-box">
+          <div class="tags" id="tags-panel">
+            <TagsPanel :changeTag="changePageParams" :queries="queries"/>
+          </div>
+          <div class="movie-cards" ref="movie_cards">
+            <a-space wrap size="large">
+              <MovieCard v-for="item in data" :key="item.pk" :item="item"/>
+            </a-space>
+          </div>
+          <div class="movies-paginator">
+            <a-pagination
+                :total="totalElements"
+                :current="pageParams.page"
+                :page-size="pageParams.pageSize"
+                @change="async (page) => {await changePageParams({page});scrollIntoMovieCards();}"
+                show-total
+                show-jumper
+            />
+          </div>
         </div>
       </a-layout-content>
       <a-layout-sider :style="{width: '30%', maxWidth: '300px'}">
         <SiderList></SiderList>
       </a-layout-sider>
     </a-layout>
-    <a-layout-footer>Footer</a-layout-footer>
+    <a-layout-footer>
+      Footer
+    </a-layout-footer>
   </div>
 </template>
 
@@ -40,50 +58,113 @@
 import {get} from "@/utils/request";
 
 import SiderList from "@/views/home/SiderList";
-import MovieCard from "@/views/home/MovieCard";
+import MovieCard from "@/components/MovieCard";
+import TagsPanel from "@/views/home/TagsPanel";
+import {onMounted, reactive, ref} from "vue";
+import {useRoute, useRouter} from "vue-router";
 
 export default {
   name: "HomeView",
   components: {
     SiderList,
-    MovieCard
+    MovieCard,
+    TagsPanel
   },
-  data() {
-    return {
-      images: [
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const queries = route.query
+    const images = reactive([
         'http://127.0.0.1:8000/static/poster_1.jpg',
         'http://127.0.0.1:8000/static/poster_2.jpg',
         'http://127.0.0.1:8000/static/poster_3.jpg',
         'http://127.0.0.1:8000/static/poster_4.jpg',
         'http://127.0.0.1:8000/static/poster_5.jpg',
-      ],
-      data: []
-    }
-  },
-  mounted() {
-    get('/api/show_movies').then(data =>{
-      data.list.forEach((val,index) => {
-        let title = data.list[index].fields.movie_title
-        let score = data.list[index].fields.movie_score
-        data.list[index].fields.movie_title = title.replace(/.*《/g,'').replace(/》.*/g,'')
-        data.list[index].fields.movie_score = score.replace(/\/.*/g,'')
-
-      })
-      this.data = data.list.slice(0,30)
+      ])
+    const data = ref([])
+    const pageParams = reactive({
+      page: 1,
+      pageSize: 12,
+      catId: 0,
+      sourceId: 0,
+      yearId: 0
     })
-  },
+    const totalElements = ref(0)
+    const movie_cards = ref(null)
+    const getMovies = () => {
+      get('/api/show_movies', pageParams).then(res =>{
+        res.list.forEach((val,index) => {
+          let title = res.list[index].fields.movie_title
+          let score = res.list[index].fields.movie_score
+          res.list[index].fields.movie_title = title.replace(/.*《/g,'').replace(/》.*/g,'')
+          res.list[index].fields.movie_score = score.replace(/\/.*/g,'')
+        })
+        totalElements.value = res.totalElements
+        console.log(totalElements)
+        data.value = res.list
+      })
+    }
+    const scrollIntoMovieCards = () => {
+      movie_cards.value.scrollIntoView()
+    }
+    const movieActorsFilter = (actorList) => {
+      return actorList.split('/').slice(0,4).join('/')
+    }
+    const changePageParams = async (params) => {
+      for (const [key, value] of Object.entries(params)) {
+        pageParams[key] = Number(value)
+        queries[key] = Number(value)
+      }
+      await router.replace({path: '/home'})
+      await router.replace({path: '/home', query: queries})
+      await getMovies()
+    }
+    onMounted(()=>{
+      for (const [key, value] of Object.entries(queries)) {
+        pageParams[key] = Number(value)
+      }
+      getMovies()
+    })
+    return {
+      queries,
+      images,
+      data,
+      pageParams,
+      movie_cards,
+      totalElements,
+      scrollIntoMovieCards,
+      movieActorsFilter,
+      changePageParams
+    }
+  }
 }
 </script>
 
 <style lang="scss" scoped>
 .home {
+  margin: 20px auto 0;
+  padding: 0 20px;
+  width: 1200px;
   .content {
     margin-right: 20px;
   }
-  .movie-cards {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
+  .movies-box {
+    text-align: center;
+    .tags {
+      margin-top: 20px;
+    }
+    .movie-cards {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .movies-paginator {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
   }
 }
 </style>
+

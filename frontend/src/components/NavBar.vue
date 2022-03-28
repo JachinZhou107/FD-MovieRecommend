@@ -1,7 +1,7 @@
 <template>
   <div class="navbar">
     <div class="navbar-box">
-      <a-menu class="menu" mode="horizontal" :selected-keys="selected" @menu-item-click="changePage">
+      <a-menu class="menu" mode="horizontal" v-model:selected-keys="selected" @menu-item-click="changePage">
         <a-menu-item disabled key="0" :style="{padding: '10px', marginRight: '28px' }">
           <img class="logo" alt="Vue logo" src="@/assets/logo1.png" @click="()=>changePage('home')">
         </a-menu-item>
@@ -51,7 +51,6 @@ export default {
       return store.state.userInfo.avatar
     })
     const changePage = (key) => {
-      console.log(isLogin.value)
       link('/'+key, key)
     }
     onMounted(()=>{

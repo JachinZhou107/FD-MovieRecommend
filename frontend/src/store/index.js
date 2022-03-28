@@ -2,7 +2,7 @@ import { createStore } from 'vuex'
 
 export default createStore({
   state: {
-    rootPath: 'home',
+    rootPath: '',
     loginStatus: false,
     userInfo: {
       username: '',

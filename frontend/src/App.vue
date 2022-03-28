@@ -17,7 +17,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -25,13 +25,12 @@ export default {
   text-align: center;
   color: #2c3e50;
 }
+</style>
+
+<style lang="scss" scoped>
 .nav {
   width: 100%;
+  min-width: 1240px;
   box-shadow: 0px -10px 20px 0px rgb(var(--primary-9));
-}
-.wrapper {
-  margin: 20px auto 0;
-  padding: 0 20px;
-  max-width: 1200px;
 }
 </style>

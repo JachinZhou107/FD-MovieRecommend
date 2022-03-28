@@ -77,6 +77,7 @@ export default {
     const avatar_upload = ref(null)
     onMounted(()=>{
       avatar.value = store.state.userInfo.avatar
+      console.log(avatar_upload.value)
     })
     const submit = async (e) => {
       e.stopPropagation();

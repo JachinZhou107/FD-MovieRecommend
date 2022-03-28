@@ -8,12 +8,13 @@
         <template #avatar>
           <div class="img-box">
             <a-image alt="无图片" width="70" height="100" :preview="false"
-                     :src="item.fields.movie_poster"  referrerPolicy="no-referrer">
+                     :src="item.fields.movie_poster" referrerPolicy="no-referrer">
               <template #loader>
                 <img
                   width="70"
                   :src="item.fields.movie_poster"
                   style="filter: blur(5px);"
+                  referrerPolicy="no-referrer"
                 />
               </template>
             </a-image>

@@ -4,13 +4,13 @@ import {get} from "@/utils/request";
 
 const routes = [
   {
-    path: '/',
-    name: 'home',
-    component: HomeView
+    path: '',
+    redirect: '/home',
   },
   {
     path: '/home',
-    redirect: '/',
+    name: 'home',
+    component: HomeView
   },
   {
     path: '/about',
@@ -29,6 +29,11 @@ const routes = [
     path: '/user',
     name: 'user',
     component: () => import(/* webpackChunkName: "user" */ '../views/user/UserView.vue')
+  },
+  {
+    path: '/films/:filmId?',
+    name: 'films',
+    component: () => import(/* webpackChunkName: "films" */ '../views/films/FilmsView.vue')
   },
   {
     path: '/:pathMatch(.*)*',
