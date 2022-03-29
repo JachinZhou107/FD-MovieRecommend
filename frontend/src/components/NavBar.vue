@@ -12,7 +12,14 @@
       </a-menu>
     </div>
     <div class="search-box">
-      <a-input-search class="search-input" placeholder="搜电影" allow-clear>
+      <a-input-search
+        v-model:model-value="movieName"
+        class="search-input"
+        placeholder="搜电影"
+        allow-clear
+        @search="handleSearchMovie"
+        @press-enter="handleSearchMovie"
+      >
       </a-input-search>
     </div>
     <div class="user-box" @click="isLogin?changePage('user'):changePage('account')">
@@ -35,7 +42,7 @@
 import { get } from "@/utils/request"
 import { useStore } from 'vuex'
 import { link } from "@/utils/link";
-import {computed, onMounted} from "vue"
+import {computed, onMounted, ref} from "vue"
 
 export default {
   name: "NavBar",
@@ -53,6 +60,14 @@ export default {
     const changePage = (key) => {
       link('/'+key, key)
     }
+    const movieName = ref('')
+    const handleSearchMovie = () => {
+      // get('/api/search_movie', { movieName: movieName.value}).then(res => {
+      //   console.log(res)
+      // })
+      link(`/search/${movieName.value}`, 'search',{ movieName: movieName.value })
+      movieName.value = ''
+    }
     onMounted(()=>{
       get('/api/login_info').then(res => {
         if (res.login) {
@@ -65,7 +80,9 @@ export default {
       selected,
       isLogin,
       user_avatar,
+      movieName,
       changePage,
+      handleSearchMovie,
     }
   }
 }

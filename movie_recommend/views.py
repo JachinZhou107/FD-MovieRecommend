@@ -57,8 +57,23 @@ def get_movie(request):
     movie_id = request.GET.get('movieId')
     try:
         movie = Movie.objects.filter(id=movie_id)
-        print(movie)
         response['movie'] = json.loads(serializers.serialize("json", movie))[0]
+        response['msg'] = 'success'
+        response['error'] = 0
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
+    return JsonResponse(response)
+
+@require_http_methods(['GET'])
+def search_movie(request):
+    response = {}
+    movie_name = request.GET.get('movieName')
+    try:
+        movies_by_name = Movie.objects.filter(movie_name__icontains=movie_name)
+        movies_by_title = Movie.objects.filter(movie_title__icontains=movie_name)
+        print(movies_by_name, movies_by_title)
+        response['movies'] = json.loads(serializers.serialize("json", movies_by_name|movies_by_title))
         response['msg'] = 'success'
         response['error'] = 0
     except Exception as e:

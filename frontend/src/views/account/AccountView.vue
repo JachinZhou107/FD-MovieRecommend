@@ -151,7 +151,7 @@ export default {
 
 <style lang="scss" scoped>
 .content-box {
-  margin: auto;
+  margin: 20px auto;
   width: 830px;
   border-radius: var(--border-radius-medium);
   overflow: hidden;

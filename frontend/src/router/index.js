@@ -36,6 +36,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "films" */ '../views/films/FilmsView.vue')
   },
   {
+    path: '/search/:movieName?',
+    name: 'search',
+    component: () => import(/* webpackChunkName: "search" */ '../views/search/SearchView.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import(/* webpackChunkName: "NotFound" */ '../views/NotFound.vue')
