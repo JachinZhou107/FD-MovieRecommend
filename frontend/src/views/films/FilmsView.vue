@@ -101,7 +101,6 @@ export default {
     onMounted(()=>{
       get('/api/get_movie', { movieId: route.params.filmId }).then(res => {
         movieInfo.fields = res.movie.fields
-        movieInfo.fields.movie_title = movieInfo.fields.movie_title.replace(/.*《/g,'').replace(/》.*/g,'')
         movieInfo.movieId = res.movie.pk
         movieScore.value = Number(movieInfo.fields.movie_score.replace(/\/.*/g,''))/2
         movieScoreCount.value = Number(movieInfo.fields.movie_score.replace(/.*from/g,'').replace(/users.*/g,''))

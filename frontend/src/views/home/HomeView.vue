@@ -49,7 +49,7 @@
       </a-layout-sider>
     </a-layout>
     <a-layout-footer>
-      Footer
+      <a-button @click="handleDealMovie">接口测试</a-button>
     </a-layout-footer>
   </div>
 </template>
@@ -84,7 +84,7 @@ export default {
     const data = ref([])
     const pageParams = reactive({
       page: 1,
-      pageSize: 12,
+      pageSize: 20,
       catId: 0,
       sourceId: 0,
       yearId: 0
@@ -119,6 +119,11 @@ export default {
       await router.replace({path: '/home', query: queries})
       await getMovies()
     }
+    const handleDealMovie = () => {
+      get('/api/deal_movie', {movieName: 'TruningRed'}).then((res) => {
+        console.log(res)
+      })
+    }
     onMounted(()=>{
       for (const [key, value] of Object.entries(queries)) {
         pageParams[key] = Number(value)
@@ -134,7 +139,8 @@ export default {
       totalElements,
       scrollIntoMovieCards,
       movieActorsFilter,
-      changePageParams
+      changePageParams,
+      handleDealMovie
     }
   }
 }
@@ -147,6 +153,7 @@ export default {
   width: 1200px;
   .content {
     margin-right: 20px;
+    overflow: hidden;
   }
   .movies-box {
     text-align: center;
