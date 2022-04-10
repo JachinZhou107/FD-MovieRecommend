@@ -1,17 +1,26 @@
 <template>
   <a-popover
+      v-if="popover"
       position="rt" :title="item.fields.movie_title"
       :content-style="{width: '300px'}"
   >
     <a-card hoverable class="card" @click="handleClickFilm">
       <template #cover>
         <div class="img-box">
-          <img
-            :style="{ width: '100%' }"
-            alt="dessert"
-            :src="item.fields.movie_poster"
+          <a-image
+            width="170"
+            height="240"
+            :preview="false"
+            :src="item.fields.movie_poster.replace('l_ratio_poster', 's_ratio_poster')"
             referrerPolicy="no-referrer"
-          />
+          >
+            <template #error-icon>
+              <icon-live-broadcast />
+            </template>
+            <template #loader>
+              <icon-loading :style="{height: '100%'}"/>
+            </template>
+          </a-image>
         </div>
       </template>
       <a-card-meta>
@@ -50,6 +59,39 @@
       <p>主演： {{ movieActorsFilter(item.fields.movie_actors) || '暂无'}}</p>
     </template>
   </a-popover>
+  <a-card hoverable class="card" @click="handleClickFilm" v-else>
+    <template #cover>
+      <div class="img-box">
+        <a-image
+          width="170"
+          height="240"
+          :preview="false"
+          :src="item.fields.movie_poster.replace('l_ratio_poster', 's_ratio_poster')"
+          referrerPolicy="no-referrer"
+        >
+          <template #error-icon>
+            <icon-live-broadcast />
+          </template>
+          <template #loader>
+            <icon-loading :style="{height: '100%'}"/>
+          </template>
+        </a-image>
+      </div>
+    </template>
+    <a-card-meta>
+      <template #title>
+        <span>
+          {{item.fields.movie_title}}
+        </span>
+      </template>
+      <template #description>
+        <div class="desc-box">
+          上映时间：{{item.fields.movie_time || '未知'}}<br>
+          豆瓣评分：{{item.fields.movie_score || '暂无'}}
+        </div>
+      </template>
+    </a-card-meta>
+  </a-card>
 </template>
 
 <script>
@@ -57,7 +99,23 @@ import {link} from "@/utils/link";
 
 export default {
   name: "MovieCard",
-  props: ['item'],
+  // props: ['item', 'popover'],
+  props: {
+    'item': {
+      type: Object,
+      default: () => {
+        return {
+          fields: {
+            movie_name: 'ERROR'
+          }
+        }
+      }
+    },
+    'popover': {
+      type: Boolean,
+      default: true
+    }
+  },
   setup(props) {
     const movieActorsFilter = (actorList) => {
       return actorList.split('/').slice(0,4).join('/')
@@ -77,6 +135,7 @@ export default {
 .card {
   width: 170px;
   margin: 12px;
+  cursor: pointer;
   .img-box {
     height: 240px;
     overflow: hidden;

@@ -100,15 +100,11 @@ export default {
           res.list[index].fields.movie_score = score.replace(/\/.*/g,'')
         })
         totalElements.value = res.totalElements
-        console.log(totalElements)
         data.value = res.list
       })
     }
     const scrollIntoMovieCards = () => {
       movie_cards.value.scrollIntoView()
-    }
-    const movieActorsFilter = (actorList) => {
-      return actorList.split('/').slice(0,4).join('/')
     }
     const changePageParams = async (params) => {
       for (const [key, value] of Object.entries(params)) {
@@ -120,7 +116,7 @@ export default {
       await getMovies()
     }
     const handleDealMovie = () => {
-      get('/api/deal_movie', {movieName: 'TruningRed'}).then((res) => {
+      get('/api/deal_movie', {movieName: 'nothing to lose', movieTime: '1997'}).then((res) => {
         console.log(res)
       })
     }
@@ -138,7 +134,6 @@ export default {
       movie_cards,
       totalElements,
       scrollIntoMovieCards,
-      movieActorsFilter,
       changePageParams,
       handleDealMovie
     }

@@ -8,7 +8,14 @@
               :width="226"
               :height="330"
               referrerPolicy="no-referrer"
-          ></a-image>
+          >
+            <template #error-icon>
+              <icon-live-broadcast />
+            </template>
+            <template #loader>
+              <icon-loading :size="24" :style="{height: '100%'}"/>
+            </template>
+          </a-image>
         </div>
         <h1 class="movie-title">
           <span>{{ movieInfo.fields?.movie_title }}</span>
@@ -24,10 +31,10 @@
             <div class="movie-brief-field">
               {{movieInfo.fields?.movie_length}} {{movieInfo.fields?.movie_type}}
             </div>
-            <div class="movie-brief-field movie-director">
+            <div class="movie-brief-field movie-director" v-if="movieInfo.fields?.movie_director">
               <span>导演：</span><span>{{movieInfo.fields?.movie_director}}</span>
             </div>
-            <div class="movie-brief-field movie-actors">
+            <div class="movie-brief-field movie-actors" v-if="movieInfo.fields?.movie_actors">
               <div>主演 / 演员：</div><span :title="movieInfo.fields?.movie_actors">{{movieInfo.fields?.movie_actors}}</span>
             </div>
           </div>
@@ -149,10 +156,11 @@ export default {
         margin-left: 270px;
         .movie-brief {
           text-align: left;
-          width: 500px;
+          width: 640px;
           height: 200px;
+          line-height: 1.5;
           &-field {
-            margin: 12px;
+            margin: 4px;
           }
           .movie-name {
             font-size: 18px;
