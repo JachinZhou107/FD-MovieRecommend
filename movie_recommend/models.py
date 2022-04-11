@@ -7,7 +7,7 @@ class Movie(models.Model):
     movie_time = models.CharField(max_length=4, default='')
     movie_title = models.CharField(max_length=128, default='')
     movie_poster = models.CharField(max_length=128, default='')
-    movie_contry = models.CharField(max_length=128, default='')
+    movie_country = models.CharField(max_length=128, default='')
     movie_type = models.CharField(max_length=128, default='')
     movie_score = models.CharField(max_length=64, default='')
     movie_score_sum = models.CharField(max_length=64, default='')

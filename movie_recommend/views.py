@@ -34,7 +34,7 @@ proxies = {"http": random.choice(IP_AGENTS)}
 
 def spider_movie_info(movie_url):
     movies = {}
-    res = requests.get(movie_url, headers={'User-agent': ua})
+    res = requests.get(movie_url, headers={'User-agent': ua}, proxies=proxies)
     res = res.text
     html_tree = etree.HTML(res)
 
@@ -88,7 +88,7 @@ def spider_search_movie(movie_name, movie_year):
 
     # req = Request('{}?{}'.format(base_url, urlencode(d)), headers={'User-agent': ua})
     # with urlopen(req, context=context, proxies=proxies) as res:
-    res = requests.get('{}?{}'.format(base_url, urlencode(d)), headers={'User-agent': ua})
+    res = requests.get('{}?{}'.format(base_url, urlencode(d)), headers={'User-agent': ua}, proxies=proxies)
     res = res.text
     r = re.search('window.__DATA__ = "([^"]+)"', res).group(1)
     with open('static/decode.js', 'r', encoding='gbk') as f:
@@ -122,22 +122,22 @@ def update_movie_info(movie, movie_info):
         if len(s) > 1:
             movie.movie_name = s[1]
         else:
-            movie.movie_name = s[0]
+            movie.movie_name = ""
     else:
         movie.movie_title = ""
         movie.movie_name = movie_info['电影标题']
-    movie.movie_time = movie_info.get('上映时间', '暂无')
-    movie.movie_score = movie_info['电影评分'] or '暂无'
-    movie.movie_score_sum = movie_info['评分人数']
-    movie.movie_actors = movie_info.get('电影主演', '暂无')
-    movie.movie_type = movie_info['电影类型'] or '暂无'
-    movie.movie_director = movie_info.get('电影导演', '暂无')
-    movie.movie_desc = movie_info['电影简介'] or '暂无'
-    movie.movie_contry = movie_info['电影产地'] or '暂无'
-    movie.movie_length = movie_info['电影片长'] or '暂无'
-    movie.movie_db_url = movie_info['豆瓣链接'] or '暂无'
-    movie.movie_imdb_id = movie_info['imdbId'] or '暂无'
-    movie.movie_poster = movie_info['电影海报'] or '暂无'
+    movie.movie_time = movie_info.get('上映时间', '')
+    movie.movie_score = movie_info.get('电影评分', '暂无')
+    movie.movie_score_sum = movie_info.get('评分人数', '0人评价')
+    movie.movie_actors = movie_info.get('电影主演', '')
+    movie.movie_type = movie_info.get('电影类型', '')
+    movie.movie_director = movie_info.get('电影导演', '')
+    movie.movie_desc = movie_info.get('电影简介', '暂无简介')
+    movie.movie_country = movie_info.get('电影产地', '')
+    movie.movie_length = movie_info.get('电影片长', '')
+    movie.movie_db_url = movie_info.get('豆瓣链接', 'none')
+    movie.movie_imdb_id = movie_info.get('imdbId', 'none')
+    movie.movie_poster = movie_info.get('电影海报', '')
     movie.movie_update_time = date.today().strftime('%Y-%m-%d')
     movie.save()
     return
@@ -185,7 +185,7 @@ def show_movies(request):
     year_id = int(request.GET.get('yearId') or 0)
     try:
         print(sources[source_id], years[year_id], cats[cat_id])
-        movies = Movie.objects.filter(movie_contry__contains=sources[source_id], movie_type__contains=cats[cat_id],
+        movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id],
                                       movie_time__contains=years[year_id])
         paged_movies = Paginator(movies, page_size)
         res_page = paged_movies.page(page).object_list
@@ -215,6 +215,8 @@ def get_movie(request):
         if (today - last_update_date).days > 180:
             new_movie_info = spider_search_movie(movie.movie_name, movie.movie_time)
             print(new_movie_info)
+            if new_movie_info == 'no result':
+                raise Exception('电影信息错误或失效，可向本站管理员反馈')
             update_movie_info(movie, new_movie_info)
         response['movie'] = json.loads(serializers.serialize("json", Movie.objects.filter(id=movie_id)))[0]
         response['msg'] = 'success'
@@ -232,6 +234,7 @@ def search_movie(request):
     # page_size = int(request.GET.get('pageSize') or 12)
     movie_name = request.GET.get('movieName')
     total_elements = 0
+    response['keyWords'] = movie_name
     try:
         movies_by_name = Movie.objects.filter(movie_name__icontains=movie_name)
         movies_by_title = Movie.objects.filter(movie_title__icontains=movie_name)

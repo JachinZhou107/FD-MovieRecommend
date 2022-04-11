@@ -27,7 +27,7 @@
         </template>
         <template #description>
           <div class="desc-box">
-            上映时间：{{item.fields.movie_time}}<br>上映地区：{{item.fields.movie_contry}}<br>豆瓣评分：{{item.fields.movie_score || '暂无'}}
+            上映时间：{{item.fields.movie_time}}<br>上映地区：{{item.fields.movie_country}}<br>豆瓣评分：{{item.fields.movie_score || '暂无'}}
           </div>
         </template>
       </a-list-item-meta>

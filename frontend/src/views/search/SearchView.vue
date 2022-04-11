@@ -12,6 +12,7 @@
       </div>
     </div>
     <div class="result">
+      <h1 v-if="totalElements>0">搜索 {{ keyWords }}</h1>
       <div class="movie-cards" ref="movie_cards">
         <a-space wrap size="large">
           <MovieCard v-for="item in movies" :key="item.pk" :item="item" :popover="false" />
@@ -42,7 +43,7 @@
 
 <script>
 import {useRoute, useRouter} from "vue-router";
-import {onMounted, reactive, ref} from "vue";
+import {onMounted, reactive, ref, watch} from "vue";
 import {get} from "@/utils/request";
 
 import MovieCard from "@/components/MovieCard";
@@ -56,6 +57,7 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const movieName = ref('')
+    const keyWords = ref('')
     const movies = ref([])
     const errorMessage = ref('')
     const errorCode = ref(0)
@@ -64,20 +66,38 @@ export default {
       page: 1,
       pageSize: 12,
     })
+    watch(
+      () => route.params.movieName,
+      (name, preName) => {
+        if ( name != preName && name ) {
+          movieName.value = name
+          searchMovie()
+        }
+      }
+    )
     const totalElements = ref(0)
     const movie_cards = ref(null)
     const searchMovie = () => {
-      movieName.value = movieName.value.trim()
-      if (movieName.value.length > 0 ) {
-        pageParams.movieName = movieName.value
-        get('/api/search_movie', pageParams).then(res => {
-          movies.value = res.list
-          totalElements.value = res.totalElements || 0
-          errorMessage.value = res.error == '1'?res.msg:'很抱歉，没找到相关的影片'
-          errorCode.value = Number(res.error)
-          console.log(res, movies, errorCode, errorMessage)
-        })
+      movies.value = {}
+      if (movieName.value?.length > 0 && movieName.value?.trim().length > 0 ) {
+        pageParams.movieName = movieName.value.trim()
+        get('/api/search_movie', pageParams).then(
+          res => {
+            movies.value = res.list
+            keyWords.value = res.keyWords
+            totalElements.value = res.totalElements || 0
+            errorMessage.value = res.error == '1'?res.msg:'很抱歉，没找到与“'+res.keyWords+'”相关的影片'
+            errorCode.value = Number(res.error)
+            console.log(res, movies, errorCode, errorMessage)
+          })
       }
+      else {
+        movies.value = {}
+        totalElements.value = 0
+        errorMessage.value = '很抱歉，没找到与“”相关的影片'
+        errorCode.value = 0
+      }
+
       router.replace(`/search/${movieName.value}?page=${pageParams.page}`)
     }
     const handleSearchMovie = () => {
@@ -95,9 +115,7 @@ export default {
     onMounted(async () => {
       movieName.value = route.params.movieName
       pageParams.page = Number(route.query.page)||1
-      if ( movieName.value ) {
-        await searchMovie()
-      }
+      await searchMovie()
     })
     return {
       movieName,
@@ -107,6 +125,7 @@ export default {
       pageParams,
       movie_cards,
       totalElements,
+      keyWords,
       scrollIntoMovieCards,
       changePage,
       handleSearchMovie
@@ -140,6 +159,10 @@ export default {
   width: 880px;
   margin: 24px auto 0;
   padding-left: 24px;
+  h1 {
+    text-align: left;
+    margin-bottom: 32px;
+  }
   .empty-list  {
     text-align: left;
     h3 {

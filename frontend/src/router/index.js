@@ -67,4 +67,8 @@ router.beforeEach(async(to, from, next) => {
   else next()
 })
 
+router.afterEach(() => {
+   window.scrollTo(0,0);
+});
+
 export default router

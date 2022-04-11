@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ('movie_time', models.CharField(default='', max_length=4)),
                 ('movie_title', models.CharField(default='', max_length=128)),
                 ('movie_poster', models.CharField(default='', max_length=128)),
-                ('movie_contry', models.CharField(default='', max_length=128)),
+                ('movie_country', models.CharField(default='', max_length=128)),
                 ('movie_type', models.CharField(default='', max_length=128)),
                 ('movie_score', models.CharField(default='', max_length=64)),
                 ('movie_length', models.CharField(default='', max_length=32)),

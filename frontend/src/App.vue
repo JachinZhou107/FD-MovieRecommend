@@ -1,7 +1,10 @@
 <template>
-  <div class="nav">
-    <nav-bar />
-  </div>
+  <a-affix>
+    <div class="nav">
+      <nav-bar />
+    </div>
+  </a-affix>
+
   <div class="wrapper">
     <router-view/>
   </div>
@@ -35,6 +38,7 @@ export default {
   width: 100%;
   min-width: 1240px;
   box-shadow: 0px -10px 20px 0px rgb(var(--primary-9));
+  background-color: var(--color-white);
 }
 .wrapper {
   min-height: 500px;

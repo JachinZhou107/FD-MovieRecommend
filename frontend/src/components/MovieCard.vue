@@ -136,6 +136,10 @@ export default {
   width: 170px;
   margin: 12px;
   cursor: pointer;
+  transition-property: all;
+  &:hover{
+    transform: translateY(-4px);
+  }
   .img-box {
     height: 240px;
     overflow: hidden;

@@ -1,60 +1,59 @@
 <template>
   <div class="film">
     <div class="banner">
-      <div class="info">
-        <div class="movie-poster">
-          <a-image
-              :src="movieInfo.fields?.movie_poster"
-              :width="226"
-              :height="330"
-              referrerPolicy="no-referrer"
-          >
-            <template #error-icon>
-              <icon-live-broadcast />
-            </template>
-            <template #loader>
-              <icon-loading :size="24" :style="{height: '100%'}"/>
-            </template>
-          </a-image>
-        </div>
-        <h1 class="movie-title">
-          <span>{{ movieInfo.fields?.movie_title }}</span>
-        </h1>
-        <div class="movie-details">
-          <div class="movie-brief">
-            <div class="movie-brief-field movie-name">
-              <span>译名 / 别名：</span><span :title="movieInfo.fields?.movie_name">{{movieInfo.fields?.movie_name}}</span>
+      <a-spin :loading="loading" dot style="width: 100%">
+        <div class="info">
+          <div class="movie-poster">
+            <a-image
+                :src="movieInfo.fields?.movie_poster"
+                :width="226"
+                :height="330"
+                referrerPolicy="no-referrer"
+            >
+              <template #error-icon>
+                <icon-live-broadcast />
+              </template>
+              <template #loader>
+                <icon-loading :size="24" :style="{height: '100%'}"/>
+              </template>
+            </a-image>
+          </div>
+          <h1 class="movie-title">
+            <span>{{ movieInfo.fields?.movie_title }} {{ movieInfo.fields?.movie_name }}</span>
+          </h1>
+          <div class="movie-details">
+            <div class="movie-brief">
+              <div class="movie-brief-field">
+                {{movieInfo.fields?.movie_time}} {{movieInfo.fields?.movie_country}}
+              </div>
+              <div class="movie-brief-field">
+                {{movieInfo.fields?.movie_length}} {{movieInfo.fields?.movie_type}}
+              </div>
+              <div class="movie-brief-field movie-director" v-if="movieInfo.fields?.movie_director">
+                <span>导演：</span><span>{{movieInfo.fields?.movie_director}}</span>
+              </div>
+              <div class="movie-brief-field movie-actors" v-if="movieInfo.fields?.movie_actors">
+                <div>主演 / 演员：</div><span :title="movieInfo.fields?.movie_actors">{{movieInfo.fields?.movie_actors}}</span>
+              </div>
             </div>
-            <div class="movie-brief-field">
-              {{movieInfo.fields?.movie_time}} {{movieInfo.fields?.movie_contry}}
-            </div>
-            <div class="movie-brief-field">
-              {{movieInfo.fields?.movie_length}} {{movieInfo.fields?.movie_type}}
-            </div>
-            <div class="movie-brief-field movie-director" v-if="movieInfo.fields?.movie_director">
-              <span>导演：</span><span>{{movieInfo.fields?.movie_director}}</span>
-            </div>
-            <div class="movie-brief-field movie-actors" v-if="movieInfo.fields?.movie_actors">
-              <div>主演 / 演员：</div><span :title="movieInfo.fields?.movie_actors">{{movieInfo.fields?.movie_actors}}</span>
+            <div class="movie-score">
+              <div class="score-number">
+                <a-statistic title="豆瓣评分" :value="movieScore*2" :precision="1" style="color: white" />
+              </div>
+              <div class="score-star">
+                <div>{{ movieScoreCount }}</div>
+                <a-rate :count="5" v-model:model-value="movieScore" readonly allow-half>
+                </a-rate>
+              </div>
+              <div class="add-score">
+                <a-button status="danger" size="large">去评分</a-button>
+              </div>
             </div>
           </div>
-          <div class="movie-score">
-            <div class="score-number">
-              <a-statistic title="豆瓣评分" :value="movieScore*2" :precision="1" style="color: white" />
-            </div>
-            <div class="score-star">
-              <div>{{ movieScoreCount }}人评分</div>
-              <a-rate :count="5" v-model:model-value="movieScore" readonly allow-half>
-              </a-rate>
-            </div>
-            <div class="add-score">
-              <a-button status="danger" size="large">去评分</a-button>
-            </div>
-          </div>
         </div>
-      </div>
+      </a-spin>
     </div>
-    <div class="content-container">
+    <div class="content-container" v-show="!loading">
       <div class="content">
         <div class="movie-desc">
           <div class="title">
@@ -82,6 +81,17 @@
         </div>
       </div>
     </div>
+    <a-modal
+        v-model:visible="error"
+        ok-text="回到首页"
+        :closable="false" hide-cancel
+        @ok="handleOk" @cancel="handleCancel"
+    >
+      <template #title>
+        提示
+      </template>
+      <div>{{ errorMsg }}</div>
+    </a-modal>
   </div>
 </template>
 
@@ -105,19 +115,33 @@ export default {
     })
     const movieScore = ref(0)
     const movieScoreCount = ref(0)
+    const loading = ref(true)
+    const error = ref(false)
+    const errorMsg = ref('')
     onMounted(()=>{
       get('/api/get_movie', { movieId: route.params.filmId }).then(res => {
-        movieInfo.fields = res.movie.fields
-        movieInfo.movieId = res.movie.pk
-        movieScore.value = Number(movieInfo.fields.movie_score.replace(/\/.*/g,''))/2
-        movieScoreCount.value = Number(movieInfo.fields.movie_score.replace(/.*from/g,'').replace(/users.*/g,''))
-        console.log(movieInfo,movieScoreCount)
+        if ( res.error == '0' ) {
+          movieInfo.fields = res.movie.fields
+          movieInfo.movieId = res.movie.pk
+          movieScore.value = Number(movieInfo.fields.movie_score)/2
+          movieScoreCount.value = movieInfo.fields.movie_score_sum
+          console.log(movieInfo,movieScoreCount)
+          loading.value = false
+        }
+        else {
+          error.value = true
+          errorMsg.value = res.msg
+          loading.value = false
+        }
       })
     })
     return {
       movieInfo,
       movieScore,
-      movieScoreCount
+      movieScoreCount,
+      loading,
+      error,
+      errorMsg
     }
   }
 }
@@ -156,18 +180,11 @@ export default {
         margin-left: 270px;
         .movie-brief {
           text-align: left;
-          width: 640px;
+          width: 520px;
           height: 200px;
           line-height: 1.5;
           &-field {
             margin: 4px;
-          }
-          .movie-name {
-            font-size: 18px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 1;
           }
           .movie-director {
             margin-top: 20px;
@@ -176,7 +193,7 @@ export default {
             overflow: hidden;
             display: -webkit-box;
             -webkit-box-orient: vertical;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 4;
           }
         }
         .movie-score {
@@ -222,6 +239,10 @@ export default {
     }
     .main {
       text-align: left;
+      p {
+        text-indent: 4em;
+        line-height: 1.6;
+      }
     }
     .content {
       flex-grow: 1;

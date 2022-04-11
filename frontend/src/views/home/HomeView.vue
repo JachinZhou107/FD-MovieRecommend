@@ -116,7 +116,7 @@ export default {
       await getMovies()
     }
     const handleDealMovie = () => {
-      get('/api/deal_movie', {movieName: 'nothing to lose', movieTime: '1997'}).then((res) => {
+      get('/api/deal_movie', {movieName: 'Siccin 3: Cürmü Ask', movieTime: '2016'}).then((res) => {
         console.log(res)
       })
     }

@@ -62,9 +62,6 @@ export default {
     }
     const movieName = ref('')
     const handleSearchMovie = () => {
-      // get('/api/search_movie', { movieName: movieName.value}).then(res => {
-      //   console.log(res)
-      // })
       link(`/search/${movieName.value}`, 'search',{ movieName: movieName.value })
       movieName.value = ''
     }
@@ -95,6 +92,7 @@ export default {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: var(--color-white);
   .navbar-box {
     flex-grow: 1;
     text-align: left;
