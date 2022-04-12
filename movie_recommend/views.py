@@ -1,6 +1,7 @@
 # Create your views here.
 import random
 import re
+
 import requests
 
 from django.core.paginator import Paginator
@@ -10,12 +11,11 @@ from django.http import JsonResponse
 import json
 import execjs
 
-from .models import Movie
+from .models import Movie, MovieRating
 
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import urlencode
 from lxml import html
-
 
 etree = html.etree
 # 伪装成浏览器
@@ -47,10 +47,13 @@ def spider_movie_info(movie_url):
     pic = html_tree.xpath("//div[@id='mainpic']/a/img/@src")
     movies['电影海报'] = re.sub(r'[ls]_ratio_poster', 'm_ratio_poster', pic[0])
 
-    desc = html_tree.xpath("//div[@class='related-info']/div[@class='indent']/span//text()")
+    desc = html_tree.xpath("//div[@class='related-info']/div[@class='indent']/span[@class='all hidden']//text()")
+    desc1 = html_tree.xpath("//div[@class='related-info']/div[@class='indent']/span[@property='v:summary']//text()")
+    print(desc, desc1)
     if len(desc) > 0:
-        movies['电影简介'] = desc[0].strip()
-
+        movies['电影简介'] = "<br>".join(desc).strip()
+    elif len(desc1) > 0:
+        movies['电影简介'] = "<br>".join(desc1).strip()
     score = html_tree.xpath("//div[contains(@class, 'rating_self')]/strong[contains(@class, 'rating_num')]/text()")
     score_sum = html_tree.xpath("//div[contains(@class, 'rating_self')]//div[contains(@class, 'rating_sum')]//text()")
     if len(score) > 0:
@@ -77,7 +80,6 @@ def spider_movie_info(movie_url):
             movies['电影片长'] = nsub_str.replace("片长:", "").strip()
         elif nsub_str.startswith('IMDb'):
             movies['imdbId'] = nsub_str.replace("IMDb: tt", "").strip()
-    print(movies)
     return movies
 
 
@@ -213,7 +215,10 @@ def get_movie(request):
         today = date.today()
         print((today - last_update_date).days)
         if (today - last_update_date).days > 180:
-            new_movie_info = spider_search_movie(movie.movie_name, movie.movie_time)
+            if str(movie.movie_db_url) == 'none':
+                new_movie_info = spider_search_movie(movie.movie_name, movie.movie_time)
+            else:
+                new_movie_info = spider_movie_info(str(movie.movie_db_url))
             print(new_movie_info)
             if new_movie_info == 'no result':
                 raise Exception('电影信息错误或失效，可向本站管理员反馈')
@@ -255,14 +260,28 @@ def search_movie(request):
     return JsonResponse(response)
 
 
-@require_http_methods(['GET'])
-def deal_movie(request):
+@require_http_methods(['POST'])
+def rating_movie(request):
     response = {}
-    movies = Movie.objects.filter()
-    for movie in movies:
-        # movie=movies[0]
-        movie.movie_title = re.sub(r'》.*', "》", movie.movie_title)
-        movie.save()
+    data = json.loads(request.body)
+    movie_imdb_id = data['movie_imdb_id']
+    rating = data['rating']
+    comments = data['comments']
+    time_stamp = str(datetime.now().timestamp())
+    user_id = str(int(data['userId']) + 1000)
+
+    movie_rating_set = MovieRating.objects.filter(user_id=user_id, movie_imdb_id=movie_imdb_id)
+    if len(movie_rating_set) > 0:
+        movie_rating = movie_rating_set[0]
+    else:
+        movie_rating = MovieRating()
+
+    movie_rating.movie_imdb_id = movie_imdb_id
+    movie_rating.user_id = user_id
+    movie_rating.rating = rating
+    movie_rating.comments = comments
+    movie_rating.time_stamp = time_stamp
+    movie_rating.save()
     response['msg'] = 'success'
     response['error'] = 0
     return JsonResponse(response)

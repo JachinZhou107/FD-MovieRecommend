@@ -135,17 +135,13 @@ def logout(request):
 def login_info(request):
     # 实现检查登录信息功能
     response = {}
+    if 'username' in request.COOKIES:  # 检查cookie，是否保存了用户登录信息
+        # 若存在则赋值回session
+        request.session['username'] = request.COOKIES['username']
     if 'username' in request.session:  # request.session 类字典对象
         user = User.objects.get(username=request.session['username'])
         response['avatar'] = user.avatar_url
-        response['username'] = request.session['username']
-        response['login'] = 1
-        return JsonResponse(response)
-    elif 'username' in request.COOKIES:  # 检查cookie，是否保存了用户登录信息
-        # 若存在则赋值回session
-        request.session['username'] = request.COOKIES['username']
-        user = User.objects.get(username=request.session['username'])
-        response['avatar'] = user.avatar_url
+        response['userId'] = user.id
         response['username'] = request.session['username']
         response['login'] = 1
         return JsonResponse(response)

@@ -69,7 +69,7 @@ export default {
       get('/api/login_info').then(res => {
         if (res.login) {
           store.commit('changeLoginStatus', {status: true})
-          store.commit('changeUser', { username: res.username, avatar: res.avatar})
+          store.commit('changeUser', { username: res.username, avatar: res.avatar, userId: res.userId})
         }
       })
     })

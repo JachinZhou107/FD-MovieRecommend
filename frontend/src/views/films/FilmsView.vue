@@ -46,7 +46,7 @@
                 </a-rate>
               </div>
               <div class="add-score">
-                <a-button status="danger" size="large">去评分</a-button>
+                <a-button status="danger" size="large" @click="handleOpenRating">去评分</a-button>
               </div>
             </div>
           </div>
@@ -60,7 +60,7 @@
             <h2>剧情简介</h2>
           </div>
           <div class="main">
-            <p>{{ movieInfo.fields.movie_desc }}</p>
+            <p v-for="(item,index) in movieInfo.fields.movie_desc" :key="index">{{ item }}</p>
           </div>
         </div>
         <div class="movie-comment">
@@ -83,24 +83,50 @@
     </div>
     <a-modal
         v-model:visible="error"
-        ok-text="回到首页"
-        :closable="false" hide-cancel
-        @ok="handleOk" @cancel="handleCancel"
+        ok-text="回到上一页"
+        hide-cancel
+        :closable="false"
+        :mask-closable="false"
+        @ok="handleGoBack"
     >
       <template #title>
         提示
       </template>
       <div>{{ errorMsg }}</div>
     </a-modal>
+    <a-modal
+        v-model:visible="rating"
+        ok-text="提交评价"
+        @ok="handleSubmitRating"
+    >
+      <template #title>
+        写短评
+      </template>
+      <div style="width: 100%; text-align: center">
+        <a-rate allow-half v-model:model-value="ratingNum"/>
+      </div>
+      <a-textarea
+          v-model:model-value="comments"
+          placeholder="说说你的看法吧"
+          allow-clear show-word-limit
+          :max-length="180"
+          :auto-size="{
+            minRows:3,
+            maxRows:5
+          }"
+          style="margin-top: 20px"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script>
-import {useRoute} from "vue-router";
+import {useRoute, useRouter} from "vue-router";
 import {onMounted, reactive, ref} from "vue";
-import {get} from "@/utils/request";
+import {get, post} from "@/utils/request";
 
 import CommentSection from '@/components/CommentSection.vue'
+import {useStore} from "vuex";
 
 export default {
   name: "FilmsView",
@@ -108,7 +134,9 @@ export default {
     CommentSection,
   },
   setup() {
+    const store = useStore()
     const route = useRoute()
+    const router = useRouter()
     const movieInfo = reactive({
       fields: {},
       movieId: ''
@@ -118,11 +146,32 @@ export default {
     const loading = ref(true)
     const error = ref(false)
     const errorMsg = ref('')
+    const handleGoBack = () => {
+      router.back()
+    }
+    const rating = ref(false)
+    const ratingNum = ref(0)
+    const comments = ref('')
+    const handleOpenRating = () => {
+      rating.value = true
+    }
+    const handleSubmitRating = async () => {
+      const res = await post('/api/deal_movie',
+          {
+            movie_imdb_id: movieInfo.fields.movie_imdb_id,
+            rating: ratingNum.value,
+            comments: comments.value,
+            userId: store.state.userInfo.userId
+          })
+      console.log(res)
+      rating.value = false
+    }
     onMounted(()=>{
       get('/api/get_movie', { movieId: route.params.filmId }).then(res => {
         if ( res.error == '0' ) {
           movieInfo.fields = res.movie.fields
           movieInfo.movieId = res.movie.pk
+          movieInfo.fields.movie_desc = movieInfo.fields.movie_desc.split('<br>')
           movieScore.value = Number(movieInfo.fields.movie_score)/2
           movieScoreCount.value = movieInfo.fields.movie_score_sum
           console.log(movieInfo,movieScoreCount)
@@ -141,7 +190,13 @@ export default {
       movieScoreCount,
       loading,
       error,
-      errorMsg
+      errorMsg,
+      handleGoBack,
+      rating,
+      ratingNum,
+      comments,
+      handleOpenRating,
+      handleSubmitRating,
     }
   }
 }

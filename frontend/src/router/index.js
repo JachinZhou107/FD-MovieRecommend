@@ -1,16 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/home/HomeView.vue'
 import {get} from "@/utils/request";
+import store from "@/store";
 
 const routes = [
   {
-    path: '',
-    redirect: '/home',
-  },
-  {
-    path: '/home',
+    path: '/',
     name: 'home',
-    component: HomeView
+    component: HomeView,
+    alias: '/home'
   },
   {
     path: '/about',
@@ -53,6 +51,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async(to, from, next) => {
+  console.log(to)
   if ( to.name === 'account' ) {
     let isLogin = await get('/api/login_info');
     if ( isLogin.login ) {
@@ -64,11 +63,14 @@ router.beforeEach(async(to, from, next) => {
       next()
     } else next({name: 'account'})
   }
-  else next()
+  else {
+    next()
+  }
 })
 
-router.afterEach(() => {
-   window.scrollTo(0,0);
-});
+router.afterEach((to) => {
+  store.commit('changeChooseNavbar', to.name)
+  window.scrollTo(0,0);
+})
 
 export default router

@@ -7,6 +7,7 @@ export default createStore({
     userInfo: {
       username: '',
       avatar: '',
+      userId: ''
     }
   },
   getters: {

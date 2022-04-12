@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import {get} from "@/utils/request";
+import {get, post} from "@/utils/request";
 
 import SiderList from "@/views/home/SiderList";
 import MovieCard from "@/components/MovieCard";
@@ -116,7 +116,13 @@ export default {
       await getMovies()
     }
     const handleDealMovie = () => {
-      get('/api/deal_movie', {movieName: 'Siccin 3: Cürmü Ask', movieTime: '2016'}).then((res) => {
+      post('/api/deal_movie',
+          {
+            movie_imdb_id: '8097030',
+            rating: 4.5,
+            comments: '真的好好看啊',
+            userId: 1
+          }).then((res) => {
         console.log(res)
       })
     }
