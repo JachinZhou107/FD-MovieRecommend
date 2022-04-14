@@ -23,6 +23,9 @@
           </h1>
           <div class="movie-details">
             <div class="movie-brief">
+              <div class="movie-brief-field movie-name" v-if="movieInfo.fields?.movie_other_name">
+                <span>别名：</span><span :title="movieInfo.fields?.movie_other_name">{{movieInfo.fields?.movie_other_name}}</span>
+              </div>
               <div class="movie-brief-field">
                 {{movieInfo.fields?.movie_time}} {{movieInfo.fields?.movie_country}}
               </div>
@@ -60,7 +63,7 @@
             <h2>剧情简介</h2>
           </div>
           <div class="main">
-            <p v-for="(item,index) in movieInfo.fields.movie_desc" :key="index">{{ item }}</p>
+            <p v-for="(item,index) in movieInfo.fields.movie_desc" :key="index">{{ item.trim() }}</p>
           </div>
         </div>
         <div class="movie-comment">
@@ -68,8 +71,10 @@
             <h2>电影评价</h2>
           </div>
           <div class="main">
-            <CommentSection/>
-            <a-divider />
+            <template v-for="item in movieRaingList" :key="item.pk">
+              <CommentSection :item="item"/>
+              <a-divider />
+            </template>
           </div>
         </div>
       </div>
@@ -122,7 +127,7 @@
 
 <script>
 import {useRoute, useRouter} from "vue-router";
-import {onMounted, reactive, ref} from "vue";
+import {computed, onMounted, reactive, ref} from "vue";
 import {get, post} from "@/utils/request";
 
 import CommentSection from '@/components/CommentSection.vue'
@@ -141,6 +146,7 @@ export default {
       fields: {},
       movieId: ''
     })
+    const movieRaingList = ref([])
     const movieScore = ref(0)
     const movieScoreCount = ref(0)
     const loading = ref(true)
@@ -152,13 +158,16 @@ export default {
     const rating = ref(false)
     const ratingNum = ref(0)
     const comments = ref('')
+    const isLogin = computed(()=>{
+      return store.state.loginStatus
+    })
     const handleOpenRating = () => {
-      rating.value = true
+      if (isLogin.value) rating.value = true
     }
     const handleSubmitRating = async () => {
       const res = await post('/api/deal_movie',
           {
-            movie_imdb_id: movieInfo.fields.movie_imdb_id,
+            movieImdbId: movieInfo.fields.movie_imdb_id,
             rating: ratingNum.value,
             comments: comments.value,
             userId: store.state.userInfo.userId
@@ -166,26 +175,42 @@ export default {
       console.log(res)
       rating.value = false
     }
-    onMounted(()=>{
-      get('/api/get_movie', { movieId: route.params.filmId }).then(res => {
-        if ( res.error == '0' ) {
-          movieInfo.fields = res.movie.fields
-          movieInfo.movieId = res.movie.pk
-          movieInfo.fields.movie_desc = movieInfo.fields.movie_desc.split('<br>')
-          movieScore.value = Number(movieInfo.fields.movie_score)/2
-          movieScoreCount.value = movieInfo.fields.movie_score_sum
-          console.log(movieInfo,movieScoreCount)
-          loading.value = false
+    onMounted(async ()=>{
+      const movie = await get('/api/get_movie', { movieId: route.params.filmId })
+      if ( movie.error == '0' ) {
+        movieInfo.fields = movie.movie.fields
+        movieInfo.movieId = movie.movie.pk
+        movieInfo.fields.movie_desc = movieInfo.fields.movie_desc.split('<br>')
+        movieScore.value = Number(movieInfo.fields.movie_score)/2
+        movieScoreCount.value = movieInfo.fields.movie_score_sum
+        console.log(movieInfo,movieScoreCount)
+        loading.value = false
+      }
+      else {
+        error.value = true
+        errorMsg.value = movie.msg
+        loading.value = false
+      }
+      const movieRatings = await post('/api/get_movie_ratings', { movieImdbId: movieInfo.fields.movie_imdb_id })
+      console.log(movieRatings)
+      if ( movieRatings.error == '0' )
+        movieRaingList.value = movieRatings.list
+
+      if (isLogin.value) {
+        const ratingInfo = await post('/api/get_user_rating', {
+          movieImdbId: movieInfo.fields.movie_imdb_id,
+          userId: store.state.userInfo.userId
+        })
+        if ( ratingInfo.error == '0' ) {
+          ratingNum.value = ratingInfo.rating
+          comments.value = ratingInfo.comments
         }
-        else {
-          error.value = true
-          errorMsg.value = res.msg
-          loading.value = false
-        }
-      })
+      }
+
     })
     return {
       movieInfo,
+      movieRaingList,
       movieScore,
       movieScoreCount,
       loading,
@@ -237,9 +262,17 @@ export default {
           text-align: left;
           width: 520px;
           height: 200px;
-          line-height: 1.5;
+          line-height: 1.4;
           &-field {
             margin: 4px;
+          }
+          .movie-name {
+            font-weight: bold;
+            font-size: 17px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
           }
           .movie-director {
             margin-top: 20px;

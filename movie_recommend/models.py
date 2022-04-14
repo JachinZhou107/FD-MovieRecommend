@@ -18,6 +18,7 @@ class Movie(models.Model):
     movie_db_url = models.CharField(max_length=128, default='none')
     movie_imdb_id = models.CharField(max_length=32, default='none')
     movie_update_time = models.DateField(default='2000-01-01')
+    movie_other_name = models.CharField(max_length=255, default='')
 
     def __str__(self):
         return self.movie_name+self.movie_title
@@ -38,6 +39,7 @@ class MovieRating(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     comments = models.TextField(blank=True, null=True)
     time_stamp = models.CharField(max_length=32, default='1648699200')
+    likes = models.IntegerField(default=0)
 
     def __str__(self):
         return self.user_id + ' ' + self.movie_imdb_id + ': ' + str(self.rating)

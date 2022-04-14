@@ -12,8 +12,11 @@
       </div>
     </div>
     <div class="result">
-      <h1 v-if="totalElements>0">搜索 {{ keyWords }}</h1>
+      <h1 v-if="totalElements>0">
+        搜索 {{ keyWords }}
+      </h1>
       <div class="movie-cards" ref="movie_cards">
+        <span>没有找到目标影片？</span>
         <a-space wrap size="large">
           <MovieCard v-for="item in movies" :key="item.pk" :item="item" :popover="false" />
         </a-space>
@@ -23,7 +26,7 @@
         <dl v-if="errorCode!==1">
           <dt>本站建议您：</dt>
           <dd>1. 请检查输入的关键词是否有误</dd>
-          <dd>2. 尝试搜索电影原名、英文名而不是中文名</dd>
+          <dd>2. 国外电影尝试搜索电影原名、英文名而不是中文名</dd>
           <dd>或者，亲自来帮本站添加</dd>
         </dl>
       </div>
@@ -163,6 +166,19 @@ export default {
     text-align: left;
     margin-bottom: 32px;
   }
+  .movie-cards {
+    position: relative;
+    span {
+      position: absolute;
+      right: 24px;
+      top: -52px;
+      text-decoration-line: underline;
+      cursor: pointer;
+      &:hover {
+        color: var(--color-danger-light-4)
+      }
+    }
+  }
   .empty-list  {
     text-align: left;
     h3 {
@@ -180,8 +196,12 @@ export default {
         margin-left: 0;
         &:last-child {
           margin-top: 24px;
+          width: 200px;
           text-decoration-line: underline;
           cursor: pointer;
+          &:hover {
+            color: var(--color-danger-light-4)
+          }
         }
       }
     }

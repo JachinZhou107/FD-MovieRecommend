@@ -111,6 +111,7 @@ def login(request):
     print(data['isStay'])
     if data['isStay']:
         # 若存在则说明用户选择了记住用户名功能，执行以下语句设置cookie的过期时间
+        username = json.dumps(username)
         resp.set_cookie('username', username, 60 * 60 * 24 * 7)
     return resp
 
@@ -137,7 +138,8 @@ def login_info(request):
     response = {}
     if 'username' in request.COOKIES:  # 检查cookie，是否保存了用户登录信息
         # 若存在则赋值回session
-        request.session['username'] = request.COOKIES['username']
+        username = json.loads(request.COOKIES['username'])
+        request.session['username'] = username
     if 'username' in request.session:  # request.session 类字典对象
         user = User.objects.get(username=request.session['username'])
         response['avatar'] = user.avatar_url

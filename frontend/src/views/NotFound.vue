@@ -1,10 +1,12 @@
 <template>
-  <a-empty>
-    <template #image>
-      <icon-exclamation-circle-fill />
-    </template>
-    404 Not Found
-  </a-empty>
+  <div class="notfound">
+    <a-empty>
+      <template #image>
+        <icon-exclamation-circle-fill />
+      </template>
+      404 Not Found
+    </a-empty>
+  </div>
 </template>
 
 <script>
@@ -14,5 +16,9 @@ export default {
 </script>
 
 <style scoped>
-
+.notfound {
+  height: 500px;
+  display: flex;
+  align-items: center;
+}
 </style>

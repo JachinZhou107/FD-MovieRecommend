@@ -11,6 +11,7 @@ from django.http import JsonResponse
 import json
 import execjs
 
+from user.models import User
 from .models import Movie, MovieRating
 
 from datetime import date, datetime
@@ -74,8 +75,8 @@ def spider_movie_info(movie_url):
             movies['电影产地'] = nsub_str.replace("制片国家/地区:", "").strip()
         elif nsub_str.startswith('类型'):
             movies['电影类型'] = nsub_str.replace("类型:", "").strip()
-        # elif nsub_str.startswith('上映日期'):
-        #   movies['上映时间'] = nsub_str.replace("上映日期:","").strip()
+        elif nsub_str.startswith('又名'):
+            movies['电影别名'] = nsub_str.replace("又名:", "").strip()
         elif nsub_str.startswith('片长'):
             movies['电影片长'] = nsub_str.replace("片长:", "").strip()
         elif nsub_str.startswith('IMDb'):
@@ -98,7 +99,7 @@ def spider_search_movie(movie_name, movie_year):
         ctx = execjs.compile(decrypt_js)
         data = ctx.call('decrypt', r)
         for item in data['payload']['items']:
-            # print(item)
+            print(item)
             item_url = item.get('url', 'none')
             if item_url.count('/subject/') > 0:
                 r = re.search(r'\(\d{4}\)$', item.get('title', 'none'))
@@ -128,6 +129,7 @@ def update_movie_info(movie, movie_info):
     else:
         movie.movie_title = ""
         movie.movie_name = movie_info['电影标题']
+    movie.movie_other_name = movie_info.get('电影别名', '')
     movie.movie_time = movie_info.get('上映时间', '')
     movie.movie_score = movie_info.get('电影评分', '暂无')
     movie.movie_score_sum = movie_info.get('评分人数', '0人评价')
@@ -214,9 +216,11 @@ def get_movie(request):
         last_update_date = date.fromisoformat(last_update_date)
         today = date.today()
         print((today - last_update_date).days)
-        if (today - last_update_date).days > 180:
+        if (today - last_update_date).days > -1:
             if str(movie.movie_db_url) == 'none':
                 new_movie_info = spider_search_movie(movie.movie_name, movie.movie_time)
+                if new_movie_info == 'no result':
+                    new_movie_info = spider_search_movie(movie.movie_title, movie.movie_time)
             else:
                 new_movie_info = spider_movie_info(str(movie.movie_db_url))
             print(new_movie_info)
@@ -243,8 +247,8 @@ def search_movie(request):
     try:
         movies_by_name = Movie.objects.filter(movie_name__icontains=movie_name)
         movies_by_title = Movie.objects.filter(movie_title__icontains=movie_name)
-        print(len(movies_by_name), len(movies_by_title))
-        paged_movies = Paginator(movies_by_name | movies_by_title, 12)
+        movies_by_other_name = Movie.objects.filter(movie_other_name__contains=movie_name)
+        paged_movies = Paginator(movies_by_name | movies_by_title | movies_by_other_name, 12)
         total_pages = paged_movies.num_pages
         total_elements = paged_movies.count
         res_page = paged_movies.page(page).object_list
@@ -264,24 +268,76 @@ def search_movie(request):
 def rating_movie(request):
     response = {}
     data = json.loads(request.body)
-    movie_imdb_id = data['movie_imdb_id']
+    movie_imdb_id = data['movieImdbId']
     rating = data['rating']
     comments = data['comments']
     time_stamp = str(datetime.now().timestamp())
     user_id = str(int(data['userId']) + 1000)
+    try:
+        movie_rating_set = MovieRating.objects.filter(user_id=user_id, movie_imdb_id=movie_imdb_id)
+        if len(movie_rating_set) > 0:
+            movie_rating = movie_rating_set[0]
+        else:
+            movie_rating = MovieRating()
 
-    movie_rating_set = MovieRating.objects.filter(user_id=user_id, movie_imdb_id=movie_imdb_id)
-    if len(movie_rating_set) > 0:
-        movie_rating = movie_rating_set[0]
-    else:
-        movie_rating = MovieRating()
+        movie_rating.movie_imdb_id = movie_imdb_id
+        movie_rating.user_id = user_id
+        movie_rating.rating = rating
+        movie_rating.comments = comments
+        movie_rating.time_stamp = time_stamp
+        movie_rating.save()
+        response['msg'] = 'success'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
+    return JsonResponse(response)
 
-    movie_rating.movie_imdb_id = movie_imdb_id
-    movie_rating.user_id = user_id
-    movie_rating.rating = rating
-    movie_rating.comments = comments
-    movie_rating.time_stamp = time_stamp
-    movie_rating.save()
-    response['msg'] = 'success'
-    response['error'] = 0
+
+@require_http_methods(['POST'])
+def get_user_rating(request):
+    response = {}
+    data = json.loads(request.body)
+    movie_imdb_id = data['movieImdbId']
+    user_id = str(int(data['userId']) + 1000)
+    try:
+        rating_item = MovieRating.objects.get(movie_imdb_id=movie_imdb_id, user_id=user_id)
+        response['rating'] = float(rating_item.rating)
+        response['comments'] = str(rating_item.comments)
+        response['time_stamp'] = str(rating_item.time_stamp)
+        response['msg'] = 'success'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
+    return JsonResponse(response)
+
+
+@require_http_methods(['POST'])
+def get_movie_ratings(request):
+    response = {}
+    data = json.loads(request.body)
+    movie_imdb_id = data['movieImdbId']
+    try:
+        rating_items = MovieRating.objects.filter(movie_imdb_id=movie_imdb_id)
+        rating_list = json.loads(serializers.serialize("json", rating_items))
+        for item in rating_list:
+            user_id = int(item['fields']['user_id']) - 1000
+            user = User.objects.filter(id=user_id)
+            if len(user) > 0:
+                item['fields']['user_avatar'] = str(user[0].avatar_url)
+                item['fields']['username'] = str(user[0].username)
+            else:
+                item['fields']['user_avatar'] = 'http://127.0.0.1:8000/static/user_avatar.jpg'
+                item['fields']['username'] = '用户' + str(item['fields']['user_id'])
+        response['list'] = rating_list
+        print(response['list'])
+        response['msg'] = 'success'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
     return JsonResponse(response)
