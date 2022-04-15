@@ -8,5 +8,6 @@ urlpatterns = [
     path('search_movie', search_movie),
     path('get_user_rating', get_user_rating),
     path('get_movie_ratings', get_movie_ratings),
-    path('deal_movie', rating_movie),
+    path('rating_movie', rating_movie),
+    path('deal_movies', deal_movies)
 ]

@@ -1,7 +1,7 @@
 <template>
   <a-popover
       v-if="popover"
-      position="rt" :title="item.fields.movie_title"
+      position="rt" :title="item.fields.movie_title||item.fields.movie_name"
       :content-style="{width: '300px'}"
   >
     <a-card hoverable class="card" @click="handleClickFilm">
@@ -11,7 +11,7 @@
             width="170"
             height="240"
             :preview="false"
-            :src="item.fields.movie_poster.replace('l_ratio_poster', 's_ratio_poster')"
+            :src="moviePosterFilter(item.fields.movie_poster)"
             referrerPolicy="no-referrer"
           >
             <template #error-icon>
@@ -26,7 +26,7 @@
       <a-card-meta>
         <template #title>
           <span>
-            {{item.fields.movie_title}}
+            {{item.fields.movie_title||item.fields.movie_name}}
           </span>
         </template>
         <template #description>
@@ -54,7 +54,7 @@
           {{ tag }}
         </a-tag>
       </a-space>
-      <p>{{ item.fields.movie_length }}分钟</p>
+      <p>{{ item.fields.movie_length }}</p>
       <p>导演： {{ item.fields.movie_director || '暂无'}}</p>
       <p>主演： {{ movieActorsFilter(item.fields.movie_actors) || '暂无'}}</p>
     </template>
@@ -66,7 +66,7 @@
           width="170"
           height="240"
           :preview="false"
-          :src="item.fields.movie_poster.replace('l_ratio_poster', 's_ratio_poster')"
+          :src="moviePosterFilter(item.fields.movie_poster)"
           referrerPolicy="no-referrer"
         >
           <template #error-icon>
@@ -81,7 +81,7 @@
     <a-card-meta>
       <template #title>
         <span>
-          {{item.fields.movie_title}}
+          {{item.fields.movie_title || item.fields.movie_name}}
         </span>
       </template>
       <template #description>
@@ -120,11 +120,17 @@ export default {
     const movieActorsFilter = (actorList) => {
       return actorList.split('/').slice(0,4).join('/')
     }
+    const moviePosterFilter = (posterUrl) => {
+      if ( posterUrl?.indexOf('l_ratio_poster') > -1)
+        return posterUrl.replace('l_ratio_poster', 's_ratio_poster')
+      else return posterUrl
+    }
     const handleClickFilm = () => {
       link(`/films/${props.item.pk}`,'films',{ filmId: props.item.pk })
     }
     return {
       movieActorsFilter,
+      moviePosterFilter,
       handleClickFilm
     }
   }

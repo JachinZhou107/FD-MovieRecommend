@@ -68,9 +68,11 @@ router.beforeEach(async(to, from, next) => {
   }
 })
 
-router.afterEach((to) => {
-  store.commit('changeChooseNavbar', to.name)
-  window.scrollTo(0,0);
+router.afterEach((to, from) => {
+  if ( to.name !== from.name ) {
+    store.commit('changeChooseNavbar', to.name)
+    window.scrollTo(0,0);
+  }
 })
 
 export default router

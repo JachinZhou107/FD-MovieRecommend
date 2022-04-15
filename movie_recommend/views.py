@@ -12,7 +12,7 @@ import json
 import execjs
 
 from user.models import User
-from .models import Movie, MovieRating
+from .models import Movie, MovieRating, MovieLens
 
 from datetime import date, datetime
 from urllib.parse import urlencode
@@ -179,8 +179,15 @@ def add_movie(request):
 @require_http_methods(['GET'])
 def show_movies(request):
     response = {}
-    cats = ' 爱情 喜剧 动画 剧情 恐怖 惊悚 科幻 动作 悬疑 犯罪 冒险 战争 奇幻 运动 家庭 古装 武侠 西部 历史 传记 歌舞 黑色电影 纪录片 音乐 灾难 青春 儿童'.split(' ')
-    years = ' 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2000-2010 更早'.split(' ')
+    list_type = int(request.GET.get('listType') or 0)
+    if list_type == 0:
+        cats = ' 爱情 喜剧 动画 剧情 恐怖 惊悚 科幻 动作 悬疑 犯罪 冒险 战争 奇幻 运动 家庭 古装 武侠 西部 历史 传记 歌舞 黑色电影 纪录片 音乐 灾难 青春 儿童'.split(' ')
+        years = ' 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2000-2010 更早'.split(' ')
+    else:
+        cats = ' Action Adventure Animation Biography Comedy Crime Drama Family Fantasy History Horror Music Mystery ' \
+               'Romance Sci-Fi Short Sport Thriller War Western Musical Film-Noir Documentary'.split(' ')
+        years = ' 2018 2017 2016 2015 2014 2013 2012 2011 2010 2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 更早'  \
+            .split(' ')
     sources = ' 中国大陆 美国 韩国 日本 中国香港 中国台湾 泰国 印度 法国 英国 俄罗斯 意大利 西班牙 德国 波兰 澳大利亚'.split(' ')
     page = int(request.GET.get('page') or 1)
     page_size = int(request.GET.get('pageSize') or 12)
@@ -189,13 +196,20 @@ def show_movies(request):
     year_id = int(request.GET.get('yearId') or 0)
     try:
         print(sources[source_id], years[year_id], cats[cat_id])
-        movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id],
-                                      movie_time__contains=years[year_id])
+        if list_type == 0:
+            movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id],
+                                          movie_time__contains=years[year_id])
+        else:
+            movies = MovieLens.objects.filter(movie_type__contains=cats[cat_id],
+                                              movie_time__contains=years[year_id]).order_by('-movie_time')
         paged_movies = Paginator(movies, page_size)
         res_page = paged_movies.page(page).object_list
         total_pages = paged_movies.num_pages
         total_elements = paged_movies.count
         response['list'] = json.loads(serializers.serialize("json", res_page))
+        if list_type == 1:
+            for item in response['list']:
+                item['pk'] = 'mr'+str(item['pk'])
         response['totalPages'] = total_pages
         response['totalElements'] = total_elements
         response['msg'] = 'success'
@@ -211,7 +225,11 @@ def get_movie(request):
     response = {}
     movie_id = request.GET.get('movieId')
     try:
-        movie = Movie.objects.filter(id=movie_id)[0]
+        if str(movie_id).startswith('mr'):
+            new_movie_id = str(movie_id).replace('mr', '')
+            movie = MovieLens.objects.filter(id=new_movie_id)[0]
+        else:
+            movie = Movie.objects.filter(id=movie_id)[0]
         last_update_date = str(movie.movie_update_time)
         last_update_date = date.fromisoformat(last_update_date)
         today = date.today()
@@ -227,7 +245,13 @@ def get_movie(request):
             if new_movie_info == 'no result':
                 raise Exception('电影信息错误或失效，可向本站管理员反馈')
             update_movie_info(movie, new_movie_info)
-        response['movie'] = json.loads(serializers.serialize("json", Movie.objects.filter(id=movie_id)))[0]
+
+        if str(movie_id).startswith('mr'):
+            new_movie_id = str(movie_id).replace('mr', '')
+            res_movie = json.loads(serializers.serialize("json", MovieLens.objects.filter(id=new_movie_id)))[0]
+        else:
+            res_movie = json.loads(serializers.serialize("json", Movie.objects.filter(id=movie_id)))[0]
+        response['movie'] = res_movie
         response['msg'] = 'success'
         response['error'] = 0
     except Exception as e:
@@ -242,17 +266,27 @@ def search_movie(request):
     page = int(request.GET.get('page') or 1)
     # page_size = int(request.GET.get('pageSize') or 12)
     movie_name = request.GET.get('movieName')
+    movie_set_num = int(request.GET.get('movieSet'))
+    print(movie_set_num == 1)
     total_elements = 0
     response['keyWords'] = movie_name
     try:
-        movies_by_name = Movie.objects.filter(movie_name__icontains=movie_name)
-        movies_by_title = Movie.objects.filter(movie_title__icontains=movie_name)
-        movies_by_other_name = Movie.objects.filter(movie_other_name__contains=movie_name)
+        if movie_set_num == 0:
+            movie_set = Movie
+        else:
+            movie_set = MovieLens
+        movies_by_name = movie_set.objects.filter(movie_name__icontains=movie_name).order_by("id")
+        movies_by_title = movie_set.objects.filter(movie_title__icontains=movie_name).order_by("id")
+        movies_by_other_name = movie_set.objects.filter(movie_other_name__icontains=movie_name).order_by("id")
         paged_movies = Paginator(movies_by_name | movies_by_title | movies_by_other_name, 12)
         total_pages = paged_movies.num_pages
         total_elements = paged_movies.count
         res_page = paged_movies.page(page).object_list
         response['list'] = json.loads(serializers.serialize("json", res_page))
+        if movie_set_num == 1:
+            for item in response['list']:
+                print(item)
+                item['pk'] = 'mr'+str(item['pk'])
         response['totalPages'] = total_pages
         response['totalElements'] = total_elements
         response['msg'] = 'success'
@@ -330,7 +364,7 @@ def get_movie_ratings(request):
                 item['fields']['user_avatar'] = str(user[0].avatar_url)
                 item['fields']['username'] = str(user[0].username)
             else:
-                item['fields']['user_avatar'] = 'http://127.0.0.1:8000/static/user_avatar.jpg'
+                item['fields']['user_avatar'] = '/static/user_avatar.jpg'
                 item['fields']['username'] = '用户' + str(item['fields']['user_id'])
         response['list'] = rating_list
         print(response['list'])
@@ -340,4 +374,30 @@ def get_movie_ratings(request):
     except Exception as e:
         response['msg'] = str(e)
         response['error'] = 1
+    return JsonResponse(response)
+
+
+@require_http_methods(['GET'])
+def deal_movies(request):
+    response = {
+        'error': '0'
+    }
+    movie_lens = MovieLens.objects.filter()
+    for movie in movie_lens:
+        name = str(movie.movie_name)
+        year = re.search(r'\((\d{4})\)', name)
+        if year:
+            year = year.group(1)
+        else:
+            year = re.search(r'(\d{4})', str(movie.movie_time)).group(1)
+        name = re.sub(r'\(\d{4}\)', '', name)
+        movie.movie_name = name
+        movie.movie_time = year
+        genre = str(movie.movie_type).split('|')
+        genre = str.join(' / ', genre)
+        actors = str(movie.movie_actors).split('|')
+        actors = str.join(' / ', actors)
+        movie.movie_type = genre
+        movie.movie_actors = actors
+        movie.save()
     return JsonResponse(response)

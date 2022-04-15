@@ -1,7 +1,7 @@
 <template>
   <a-list class="list-box">
     <template #header>
-      最近热映
+      评价Top250
     </template>
     <a-list-item v-for="(item) in data" :key="item.pk">
       <a-list-item-meta>
@@ -31,6 +31,9 @@
           </div>
         </template>
       </a-list-item-meta>
+    </a-list-item>
+    <a-list-item>
+      查看全部 >>
     </a-list-item>
   </a-list>
 </template>

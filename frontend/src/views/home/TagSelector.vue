@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import {onMounted, ref, watch} from "vue";
+import {onMounted, ref} from "vue";
 
 export default {
   name: "TagSelector",
@@ -21,15 +21,11 @@ export default {
   setup(props) {
     const handleChangeTag = (val) => {
       props.changeTag(val)
-      console.log(val, select)
     }
     const select = ref(0)
     onMounted(() => {
       select.value = Number(props.selected) || 0
-      console.log(select)
-    })
-    watch(select,(newValue,oldValue)=>{
-      console.log(newValue,oldValue)
+      console.log('TagSelector'+props.tagTypeName, props.selected, select)
     })
     return {
       select,

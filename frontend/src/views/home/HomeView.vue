@@ -23,9 +23,19 @@
             />
           </a-carousel-item>
         </a-carousel>
+        <a-divider />
         <div class="movies-box">
+          <div class="list-type">
+            <h2>选电影</h2>
+            <div class="type">
+              <a-radio-group type="button" size="large" v-model:model-value="listType" @change="changeListType">
+                <a-radio value="0">最近热门</a-radio>
+                <a-radio value="1">推荐评分</a-radio>
+              </a-radio-group>
+            </div>
+          </div>
           <div class="tags" id="tags-panel">
-            <TagsPanel :changeTag="changePageParams" :queries="queries"/>
+            <TagsPanel :changeTag="changePageParams" :queries="queries" :list-type="listType"/>
           </div>
           <div class="movie-cards" ref="movie_cards">
             <a-space wrap size="large">
@@ -73,7 +83,6 @@ export default {
   setup() {
     const route = useRoute()
     const router = useRouter()
-    const queries = route.query
     const images = reactive([
         'http://127.0.0.1:8000/static/poster_1.jpg',
         'http://127.0.0.1:8000/static/poster_2.jpg',
@@ -82,22 +91,25 @@ export default {
         'http://127.0.0.1:8000/static/poster_5.jpg',
       ])
     const data = ref([])
-    const pageParams = reactive({
+    let queries = reactive(route.query)
+    let pageParams = reactive({
       page: 1,
       pageSize: 20,
       catId: 0,
       sourceId: 0,
-      yearId: 0
+      yearId: 0,
+      listType: '0',
     })
     const totalElements = ref(0)
     const movie_cards = ref(null)
+    const listType = ref('0')
     const getMovies = () => {
       get('/api/show_movies', pageParams).then(res =>{
         res.list.forEach((val,index) => {
           let title = res.list[index].fields.movie_title
           let score = res.list[index].fields.movie_score
-          res.list[index].fields.movie_title = title.replace(/.*《/g,'').replace(/》.*/g,'')
-          res.list[index].fields.movie_score = score.replace(/\/.*/g,'')
+          res.list[index].fields.movie_title = title
+          res.list[index].fields.movie_score = score
         })
         totalElements.value = res.totalElements
         data.value = res.list
@@ -111,6 +123,23 @@ export default {
         pageParams[key] = Number(value)
         queries[key] = Number(value)
       }
+      console.log('home:', queries)
+      await router.replace({path: '/home'})
+      await router.replace({path: '/home', query: queries})
+      await getMovies()
+    }
+    const changeListType = async (param) => {
+      const newParams = {
+        listType: param,
+        catId: 0,
+        yearId: 0,
+        sourceId: 0,
+      }
+      for (const [key, value] of Object.entries(newParams)) {
+        pageParams[key] = Number(value)
+        queries[key] = Number(value)
+      }
+      console.log(pageParams, queries)
       await router.replace({path: '/home'})
       await router.replace({path: '/home', query: queries})
       await getMovies()
@@ -130,6 +159,7 @@ export default {
       for (const [key, value] of Object.entries(queries)) {
         pageParams[key] = Number(value)
       }
+      if ( queries.listType ) listType.value = queries.listType
       getMovies()
     })
     return {
@@ -139,8 +169,10 @@ export default {
       pageParams,
       movie_cards,
       totalElements,
+      listType,
       scrollIntoMovieCards,
       changePageParams,
+      changeListType,
       handleDealMovie
     }
   }
@@ -157,9 +189,13 @@ export default {
     overflow: hidden;
   }
   .movies-box {
+    margin-top: 20px;
     text-align: center;
-    .tags {
-      margin-top: 20px;
+    .list-type {
+      display: flex;
+      .type {
+        margin: auto 12px;
+      }
     }
     .movie-cards {
       margin-top: 12px;

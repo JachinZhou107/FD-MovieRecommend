@@ -11,13 +11,22 @@
         />
       </div>
     </div>
+    <div class="list-type">
+      <h2>选择搜索影单：</h2>
+      <div class="type">
+        <a-radio-group type="button" size="large" v-model:model-value="pageParams.movieSet" @change="handleSearchMovie">
+          <a-radio :value="0">最近热门</a-radio>
+          <a-radio :value="1">推荐评分</a-radio>
+        </a-radio-group>
+      </div>
+    </div>
     <div class="result">
-      <h1 v-if="totalElements>0">
+      <h1>
         搜索 {{ keyWords }}
       </h1>
       <div class="movie-cards" ref="movie_cards">
-        <span>没有找到目标影片？</span>
-        <a-space wrap size="large">
+        <span v-if="totalElements>0">没有找到目标影片？</span>
+        <a-space wrap size="large" v-if="totalElements>0">
           <MovieCard v-for="item in movies" :key="item.pk" :item="item" :popover="false" />
         </a-space>
       </div>
@@ -26,7 +35,8 @@
         <dl v-if="errorCode!==1">
           <dt>本站建议您：</dt>
           <dd>1. 请检查输入的关键词是否有误</dd>
-          <dd>2. 国外电影尝试搜索电影原名、英文名而不是中文名</dd>
+          <dd>2. 国外电影可尝试搜索电影原名、英文名而不是中文名</dd>
+          <dd>3. 切换搜索影单</dd>
           <dd>或者，亲自来帮本站添加</dd>
         </dl>
       </div>
@@ -61,6 +71,7 @@ export default {
     const router = useRouter()
     const movieName = ref('')
     const keyWords = ref('')
+    const movieSet = ref(0)
     const movies = ref([])
     const errorMessage = ref('')
     const errorCode = ref(0)
@@ -68,6 +79,7 @@ export default {
       movieName: '',
       page: 1,
       pageSize: 12,
+      movieSet: 0
     })
     watch(
       () => route.params.movieName,
@@ -96,12 +108,13 @@ export default {
       }
       else {
         movies.value = {}
+        keyWords.value = ''
         totalElements.value = 0
         errorMessage.value = '很抱歉，没找到与“”相关的影片'
         errorCode.value = 0
       }
 
-      router.replace(`/search/${movieName.value}?page=${pageParams.page}`)
+      router.replace(`/search/${movieName.value}?movieSet=${pageParams.movieSet}&page=${pageParams.page}`)
     }
     const handleSearchMovie = () => {
       totalElements.value = 0
@@ -109,6 +122,7 @@ export default {
       searchMovie()
     }
     const scrollIntoMovieCards = () => {
+      console.log('changePage')
       movie_cards.value.scrollIntoView()
     }
     const changePage = async (page) => {
@@ -118,6 +132,7 @@ export default {
     onMounted(async () => {
       movieName.value = route.params.movieName
       pageParams.page = Number(route.query.page)||1
+      pageParams.movieSet = Number(route.query.movieSet)||0
       await searchMovie()
     })
     return {
@@ -129,6 +144,7 @@ export default {
       movie_cards,
       totalElements,
       keyWords,
+      movieSet,
       scrollIntoMovieCards,
       changePage,
       handleSearchMovie
@@ -156,6 +172,14 @@ export default {
     .search-input {
       padding: 4px;
     }
+  }
+}
+.list-type {
+  width: 880px;
+  display: flex;
+  margin: 0 auto;
+  .type {
+    margin: auto 12px;
   }
 }
 .result {

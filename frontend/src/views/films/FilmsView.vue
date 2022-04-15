@@ -165,7 +165,7 @@ export default {
       if (isLogin.value) rating.value = true
     }
     const handleSubmitRating = async () => {
-      const res = await post('/api/deal_movie',
+      const res = await post('/api/rating_movie',
           {
             movieImdbId: movieInfo.fields.movie_imdb_id,
             rating: ratingNum.value,
