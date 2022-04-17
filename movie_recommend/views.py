@@ -5,6 +5,7 @@ import re
 import requests
 
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 from django.core import serializers
 from django.http import JsonResponse
@@ -186,7 +187,7 @@ def show_movies(request):
     else:
         cats = ' Action Adventure Animation Biography Comedy Crime Drama Family Fantasy History Horror Music Mystery ' \
                'Romance Sci-Fi Short Sport Thriller War Western Musical Film-Noir Documentary'.split(' ')
-        years = ' 2018 2017 2016 2015 2014 2013 2012 2011 2010 2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 更早'  \
+        years = ' 2018 2017 2016 2015 2014 2013 2012 2011 2010 2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 更早' \
             .split(' ')
     sources = ' 中国大陆 美国 韩国 日本 中国香港 中国台湾 泰国 印度 法国 英国 俄罗斯 意大利 西班牙 德国 波兰 澳大利亚'.split(' ')
     page = int(request.GET.get('page') or 1)
@@ -201,7 +202,7 @@ def show_movies(request):
                                           movie_time__contains=years[year_id])
         else:
             movies = MovieLens.objects.filter(movie_type__contains=cats[cat_id],
-                                              movie_time__contains=years[year_id]).order_by('-movie_time')
+                                              movie_time__contains=years[year_id]).order_by('-movie_time', 'id')
         paged_movies = Paginator(movies, page_size)
         res_page = paged_movies.page(page).object_list
         total_pages = paged_movies.num_pages
@@ -209,7 +210,7 @@ def show_movies(request):
         response['list'] = json.loads(serializers.serialize("json", res_page))
         if list_type == 1:
             for item in response['list']:
-                item['pk'] = 'mr'+str(item['pk'])
+                item['pk'] = 'mr' + str(item['pk'])
         response['totalPages'] = total_pages
         response['totalElements'] = total_elements
         response['msg'] = 'success'
@@ -234,7 +235,7 @@ def get_movie(request):
         last_update_date = date.fromisoformat(last_update_date)
         today = date.today()
         print((today - last_update_date).days)
-        if (today - last_update_date).days > -1:
+        if (today - last_update_date).days > 90:
             if str(movie.movie_db_url) == 'none':
                 new_movie_info = spider_search_movie(movie.movie_name, movie.movie_time)
                 if new_movie_info == 'no result':
@@ -275,10 +276,12 @@ def search_movie(request):
             movie_set = Movie
         else:
             movie_set = MovieLens
-        movies_by_name = movie_set.objects.filter(movie_name__icontains=movie_name).order_by("id")
-        movies_by_title = movie_set.objects.filter(movie_title__icontains=movie_name).order_by("id")
-        movies_by_other_name = movie_set.objects.filter(movie_other_name__icontains=movie_name).order_by("id")
-        paged_movies = Paginator(movies_by_name | movies_by_title | movies_by_other_name, 12)
+        movies = movie_set.objects.filter(
+            Q(movie_name__icontains=movie_name) | Q(movie_title__icontains=movie_name) | Q(
+                movie_other_name__icontains=movie_name)).order_by('-movie_time', 'id')
+        # movies_by_title = movie_set.objects.filter(movie_title__icontains=movie_name).order_by('-movie_time', 'id')
+        # movies_by_other_name = movie_set.objects.filter(movie_other_name__icontains=movie_name).order_by('-movie_time', 'id')
+        paged_movies = Paginator(movies, 12)
         total_pages = paged_movies.num_pages
         total_elements = paged_movies.count
         res_page = paged_movies.page(page).object_list
@@ -286,7 +289,7 @@ def search_movie(request):
         if movie_set_num == 1:
             for item in response['list']:
                 print(item)
-                item['pk'] = 'mr'+str(item['pk'])
+                item['pk'] = 'mr' + str(item['pk'])
         response['totalPages'] = total_pages
         response['totalElements'] = total_elements
         response['msg'] = 'success'
