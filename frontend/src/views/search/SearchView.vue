@@ -27,7 +27,16 @@
       <div class="movie-cards" ref="movie_cards">
         <span v-if="totalElements>0">没有找到目标影片？</span>
         <a-space wrap size="large" v-if="totalElements>0">
-          <MovieCard v-for="item in movies" :key="item.pk" :item="item" :popover="false" />
+          <MovieCard v-for="item in movies" :key="item.pk" :item="item" :popover="false">
+            <template v-slot:desc>
+              <div class="desc-box">
+                <h4>
+                  {{ item.fields.movie_title || item.fields.movie_name}}
+                </h4>
+                上映时间：{{item.fields.movie_time || '未知'}}
+              </div>
+            </template>
+          </MovieCard>
         </a-space>
       </div>
       <div class="empty-list" v-if="errorCode!='0'||(errorCode=='0'&&totalElements==0)">

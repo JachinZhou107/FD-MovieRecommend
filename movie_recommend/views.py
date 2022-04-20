@@ -185,8 +185,9 @@ def show_movies(request):
         cats = ' 爱情 喜剧 动画 剧情 恐怖 惊悚 科幻 动作 悬疑 犯罪 冒险 战争 奇幻 运动 家庭 古装 武侠 西部 历史 传记 歌舞 黑色电影 纪录片 音乐 灾难 青春 儿童'.split(' ')
         years = ' 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2000-2010 更早'.split(' ')
     else:
-        cats = ' Action Adventure Animation Biography Comedy Crime Drama Family Fantasy History Horror Music Mystery ' \
+        catsEn = ' Action Adventure Animation Biography Comedy Crime Drama Family Fantasy History Horror Music Mystery ' \
                'Romance Sci-Fi Short Sport Thriller War Western Musical Film-Noir Documentary'.split(' ')
+        catsZn = ' 动作 冒险 动画 传记 喜剧 犯罪 剧情 家庭 奇幻 历史 恐怖 音乐 悬疑 爱情 科幻 短片 运动 惊悚 战争 西部 歌舞片 黑色电影 纪录片'.split(' ')
         years = ' 2018 2017 2016 2015 2014 2013 2012 2011 2010 2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 更早' \
             .split(' ')
     sources = ' 中国大陆 美国 韩国 日本 中国香港 中国台湾 泰国 印度 法国 英国 俄罗斯 意大利 西班牙 德国 波兰 澳大利亚'.split(' ')
@@ -196,13 +197,15 @@ def show_movies(request):
     source_id = int(request.GET.get('sourceId') or 0)
     year_id = int(request.GET.get('yearId') or 0)
     try:
-        print(sources[source_id], years[year_id], cats[cat_id])
+        # print(sources[source_id], years[year_id], catsEn[cat_id])
         if list_type == 0:
             movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id],
                                           movie_time__contains=years[year_id])
         else:
-            movies = MovieLens.objects.filter(movie_type__contains=cats[cat_id],
-                                              movie_time__contains=years[year_id]).order_by('-movie_time', 'id')
+            movies = MovieLens.objects.filter(Q(movie_type__icontains=catsEn[cat_id],
+                                              movie_time__icontains=years[year_id]) |
+                                              Q(movie_type__contains=catsZn[cat_id],
+                                                movie_time__icontains=years[year_id])).order_by('-movie_time', 'id')
         paged_movies = Paginator(movies, page_size)
         res_page = paged_movies.page(page).object_list
         total_pages = paged_movies.num_pages
@@ -279,8 +282,6 @@ def search_movie(request):
         movies = movie_set.objects.filter(
             Q(movie_name__icontains=movie_name) | Q(movie_title__icontains=movie_name) | Q(
                 movie_other_name__icontains=movie_name)).order_by('-movie_time', 'id')
-        # movies_by_title = movie_set.objects.filter(movie_title__icontains=movie_name).order_by('-movie_time', 'id')
-        # movies_by_other_name = movie_set.objects.filter(movie_other_name__icontains=movie_name).order_by('-movie_time', 'id')
         paged_movies = Paginator(movies, 12)
         total_pages = paged_movies.num_pages
         total_elements = paged_movies.count

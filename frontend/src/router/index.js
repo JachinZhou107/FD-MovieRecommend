@@ -26,7 +26,20 @@ const routes = [
   {
     path: '/user',
     name: 'user',
-    component: () => import(/* webpackChunkName: "user" */ '../views/user/UserView.vue')
+    component: () => import(/* webpackChunkName: "user" */ '../views/user/UserView.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import(/* webpackChunkName: "user" */ '../views/user/UserInfo.vue'),
+        alias: 'info'
+      },
+      {
+        // 当 /user/:id/posts 匹配成功
+        // UserPosts 将被渲染到 User 的 <router-view> 内部
+        path: 'ratings',
+        // component: UserPosts,
+      },
+    ],
   },
   {
     path: '/films/:filmId?',

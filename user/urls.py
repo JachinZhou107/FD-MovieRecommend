@@ -7,4 +7,6 @@ urlpatterns = [
     path('logout', logout),
     path('login_info', login_info),
     path('avatar', avatar),
+    path('user_ratings', user_ratings),
+    path('recommend', recommend)
 ]

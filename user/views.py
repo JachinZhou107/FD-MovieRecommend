@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 import json
 
@@ -5,10 +6,12 @@ import json
 import hashlib
 import os
 
+from django.core import serializers
 from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.http import require_POST, require_GET
 
 from MovieRecommend import settings
+from movie_recommend.models import MovieRating, Movie, MovieLens
 from user.models import User
 
 
@@ -162,10 +165,10 @@ def avatar(request):
         response['error'] = 1
         return JsonResponse(response)
     username = request.session['username']
-    avatar = request.FILES.get('file')
-    avatar_name = datetime.now().strftime('%Y%m%d%H%M%S%f') + avatar.name
+    avatar_item = request.FILES.get('file')
+    avatar_name = datetime.now().strftime('%Y%m%d%H%M%S%f') + avatar_item.name
     f = open(os.path.join(settings.UPLOAD_FILE, avatar_name), 'wb')
-    for i in avatar.chunks():
+    for i in avatar_item.chunks():
         f.write(i)
     f.close()
     try:
@@ -179,3 +182,94 @@ def avatar(request):
         response['msg'] = '未找到用户信息'
         response['error'] = 1
         return JsonResponse(response)
+
+
+@require_GET
+def user_ratings(request):
+    response = {}
+    user_id = request.GET.get('userId')
+    try:
+        ratings_qs = MovieRating.objects.filter(user_id=user_id)
+        ratings_list = json.loads(serializers.serialize("json", ratings_qs))
+        for rating in ratings_list:
+            movie = {}
+            movie_qs = MovieLens.objects.filter(movie_imdb_id=rating['fields']['movie_imdb_id'])
+            if len(movie_qs) < 1:
+                movie_qs = Movie.objects.filter(movie_imdb_id=rating['fields']['movie_imdb_id'])
+                movie['movieId'] = str(movie_qs[0].id)
+            else:
+                movie['movieId'] = 'mr'+str(movie_qs[0].id)
+            movie['movieName'] = str(movie_qs[0].movie_name)
+            movie['movieTitle'] = str(movie_qs[0].movie_title)
+            movie['moviePoster'] = str(movie_qs[0].movie_poster)
+            rating['movie'] = movie
+        response['ratings'] = ratings_list
+        response['error'] = 0
+        response['msg'] = 'success'
+    except Exception as e:
+        response['error'] = 1
+        response['msg'] = str(e)
+    return JsonResponse(response)
+
+
+@require_GET
+def recommend(request):
+    user_id = request.GET.get('userId')
+    user_cf = UserBasedCF()
+    top_k_user_sim = user_cf.get_user_sim(user_id)
+    top_n_movie = user_cf.recommend(user_id, top_k_user_sim)
+    return JsonResponse({'data': top_n_movie})
+
+
+class UserBasedCF(object):
+    def __init__(self):
+        # 最相似的30个用户
+        self.K = 30
+        # 推荐出10部影片
+        self.N = 10
+        # 用户评分电影数据
+        self.rating = dict()
+
+    def get_user_sim(self, user_id):
+        # 物体-用户倒序表
+        movie2users = dict()
+        for rating_item in MovieRating.objects.filter():
+            movie = str(rating_item.movie_imdb_id)
+            user = str(rating_item.user_id)
+            rating = str(rating_item.rating)
+            self.rating.setdefault(user, {})
+            self.rating[user][movie] = float(rating)
+            if movie not in movie2users:
+                movie2users[movie] = set()
+            movie2users[movie].add(user)
+        # 用户相似度字典
+        user_sim_dct = dict()
+        '''获取用户之间的相似度,存放在user_sim_dct中'''
+        for movie, users in movie2users.items():
+            for u in users:
+                for v in users:
+                    if u == v:
+                        continue
+                    user_sim_dct.setdefault(u, {})
+                    user_sim_dct[u].setdefault(v, 0)
+                    user_sim_dct[u][v] += 1 / math.log(1 + len(users))
+        for u, users in user_sim_dct.items():
+            for v, count in users.items():
+                user_sim_dct[u][v] = count / math.sqrt(len(self.rating[u]) * len(self.rating[v]))
+
+        # 按照key排序value，返回K个最相近的用户
+        print("user similarity calculated!")
+        # 格式是 [ (user, value), (user, value), ... ]
+        return sorted(user_sim_dct[user_id].items(), key=lambda x: -x[1])[:self.K]
+
+    def recommend(self, user_id, k_sim_users):
+        rank = dict()
+        for sim_user, factor in k_sim_users:
+            for imdb_id in self.rating[sim_user]:
+                if imdb_id in self.rating[user_id]:
+                    continue
+                rank.setdefault(imdb_id, 0)
+                rank[imdb_id] += factor*self.rating[sim_user][imdb_id]
+        rank_n = sorted(rank.items(), key=lambda x: -x[1])[:self.N]
+        print(rank_n)
+        return rank_n

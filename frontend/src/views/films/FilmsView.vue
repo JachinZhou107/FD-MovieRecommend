@@ -232,13 +232,14 @@ export default {
   .banner {
     width: 100%;
     min-width: 1240px;
-    background: #392f59 url(https://s3plus.meituan.net/v1/mss_e2821d7f0cfe4ac1bf9202ecf9590e67/cdn-prod/file:5788b470/banner_bg.f7fd103e3b8c16b6f449cce43fc57f45.png) no-repeat 50%;
+    background: #392f59 url(https://s3plus.meituan.net/v1/mss_e2821d7f0cfe4ac1bf9202ecf9590e67/cdn-prod/file:5788b470/banner_bg.f7fd103e3b8c16b6f449cce43fc57f45.png) no-repeat center/cover;
     .info {
       margin: 0 auto;
       padding: 16px 0;
-      height: 344px;
+      min-height: 344px;
       width: 1120px;
       color: var(--color-white);
+      position: relative;
       .movie-title {
         text-align: left;
         font-size: 26px;
@@ -254,7 +255,9 @@ export default {
         justify-content: center;
         align-items: center;
         box-shadow: 4px 4px 14px -4px rgb(var(--primary-9));
-        float: left;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
       }
       .movie-details {
         margin-left: 270px;

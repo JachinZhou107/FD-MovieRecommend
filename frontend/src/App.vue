@@ -1,15 +1,18 @@
 <template>
-  <a-affix>
-    <div class="nav">
-      <nav-bar />
+  <div class="movie-rm-site">
+     <a-affix>
+      <div class="nav">
+        <nav-bar />
+      </div>
+    </a-affix>
+
+    <div class="wrapper">
+      <router-view/>
     </div>
-  </a-affix>
+    <div class="footer">
 
-  <div class="wrapper">
-    <router-view/>
-  </div>
-  <div class="footer">
-
+    </div>
+    <a-back-top :style="{position:'fixed'}" />
   </div>
 </template>
 
@@ -34,6 +37,9 @@ export default {
 </style>
 
 <style lang="scss" scoped>
+.movie-rm-site {
+  position: relative;
+}
 .nav {
   width: 100%;
   min-width: 1240px;
@@ -42,6 +48,7 @@ export default {
 }
 .wrapper {
   min-height: 500px;
+  position: relative;
 }
 .footer {
   margin-top: 32px;

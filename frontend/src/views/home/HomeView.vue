@@ -39,7 +39,19 @@
           </div>
           <div class="movie-cards" ref="movie_cards">
             <a-space wrap size="large">
-              <MovieCard v-for="item in data" :key="item.pk" :item="item"/>
+              <MovieCard v-for="item in data" :key="item.pk" :item="item">
+                <template v-slot:title>
+                  <span>
+                    {{item.fields.movie_title || item.fields.movie_name}}
+                  </span>
+                </template>
+                <template v-slot:desc>
+                  <div class="desc-box">
+                    上映时间：{{item.fields.movie_time || '未知'}}<br>
+                    豆瓣评分：{{item.fields.movie_score || '暂无'}}
+                  </div>
+                </template>
+              </MovieCard>
             </a-space>
           </div>
           <div class="movies-paginator">

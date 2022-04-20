@@ -80,15 +80,10 @@
     </template>
     <a-card-meta>
       <template #title>
-        <span>
-          {{item.fields.movie_title || item.fields.movie_name}}
-        </span>
+        <slot name="title"></slot>
       </template>
       <template #description>
-        <div class="desc-box">
-          上映时间：{{item.fields.movie_time || '未知'}}<br>
-          豆瓣评分：{{item.fields.movie_score || '暂无'}}
-        </div>
+        <slot name="desc"></slot>
       </template>
     </a-card-meta>
   </a-card>
