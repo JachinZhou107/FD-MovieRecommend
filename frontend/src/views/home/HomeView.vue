@@ -1,7 +1,6 @@
 <template>
   <div class="home">
-    <a-layout>
-      <a-layout-content class="content">
+      <div class="content">
         <a-carousel
           :style="{
             width: '100%',
@@ -29,8 +28,8 @@
             <h2>选电影</h2>
             <div class="type">
               <a-radio-group type="button" size="large" v-model:model-value="listType" @change="changeListType">
-                <a-radio value="0">最近热门</a-radio>
                 <a-radio value="1">推荐评分</a-radio>
+                <a-radio value="0">最近热门</a-radio>
               </a-radio-group>
             </div>
           </div>
@@ -65,14 +64,10 @@
             />
           </div>
         </div>
-      </a-layout-content>
-      <a-layout-sider :style="{width: '30%', maxWidth: '300px'}">
+      </div>
+      <div class="sider">
         <SiderList></SiderList>
-      </a-layout-sider>
-    </a-layout>
-    <a-layout-footer>
-      <a-button @click="handleDealMovie">接口测试</a-button>
-    </a-layout-footer>
+      </div>
   </div>
 </template>
 
@@ -110,11 +105,11 @@ export default {
       catId: 0,
       sourceId: 0,
       yearId: 0,
-      listType: '0',
+      listType: '1',
     })
     const totalElements = ref(0)
     const movie_cards = ref(null)
-    const listType = ref('0')
+    const listType = ref('1')
     const getMovies = () => {
       get('/api/show_movies', pageParams).then(res =>{
         res.list.forEach((val,index) => {
@@ -196,9 +191,14 @@ export default {
   margin: 20px auto 0;
   padding: 0 20px;
   width: 1200px;
+  display: flex;
   .content {
     margin-right: 20px;
     overflow: hidden;
+    width: 880px;
+  }
+  .sider {
+    width: 300px;
   }
   .movies-box {
     margin-top: 20px;
@@ -220,6 +220,14 @@ export default {
       display: flex;
       justify-content: center;
     }
+  }
+}
+@media screen and (max-width: 1200px) {
+  .home {
+    width: 900px;
+  }
+  .sider {
+    display: none;
   }
 }
 </style>

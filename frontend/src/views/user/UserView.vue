@@ -6,18 +6,19 @@
           :style="{ width: '200px', borderRadius: '4px' }"
           theme="light"
           mode="pop" showCollapseButton
-          :default-open-keys="['0']"
+          @menu-item-click="handleClickMenu"
+          v-model:selected-keys="selected"
         >
           <a-menu-item key="0" disabled>
             <div>
               用户中心
             </div>
           </a-menu-item>
-          <a-menu-item key="1">
+          <a-menu-item :key="1">
             <template #icon><icon-user/></template>
             个人信息
           </a-menu-item>
-          <a-menu-item key="2">
+          <a-menu-item :key="2">
             <template #icon><icon-heart/> </template>
             评价管理
           </a-menu-item>
@@ -33,35 +34,29 @@
 </template>
 
 <script>
-import {get} from "@/utils/request";
-import {useStore} from "vuex";
-import {link} from "@/utils/link";
+import {onMounted, ref} from "vue";
+import router from "@/router";
+import {useRoute} from "vue-router";
 
 
 export default {
   name: "UserView",
-  components: {
-  },
-  data() {
-    return {
-      username: '',
-    }
-  },
-  mounted() {
-    get('/api/login_info').then(res => {
-      this.username = res.username
-    })
-  },
   setup() {
-    const store = useStore()
-    const handleSubmit = async () => {
-      const res = await get('/api/logout')
-      console.log(res)
-      store.commit('changeLoginStatus', {status: false})
-      await link('/', 'home')
+    const route = useRoute()
+    const selected = ref([1])
+    const handleClickMenu = async (key) => {
+      if (key == 1)
+        await router.push('/user/info')
+      else await router.push('/user/ratings')
     }
+    onMounted(async ()=>{
+      if (route.name == 'userInfo')
+        selected.value = [1]
+      else selected.value = [2]
+    })
     return {
-      handleSubmit
+      selected,
+      handleClickMenu
     }
   }
 }
@@ -71,8 +66,9 @@ export default {
 .user-view {
   display: flex;
   min-height: 600px;
-  width: 1200px;
-  margin: 0 auto;
+  min-width: 900px;
+  max-width: 1100px;
+  margin: 20px auto 0;
 }
 
 .user-menu {

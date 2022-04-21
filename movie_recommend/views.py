@@ -81,7 +81,7 @@ def spider_movie_info(movie_url):
         elif nsub_str.startswith('片长'):
             movies['电影片长'] = nsub_str.replace("片长:", "").strip()
         elif nsub_str.startswith('IMDb'):
-            movies['imdbId'] = nsub_str.replace("IMDb: tt", "").strip()
+            movies['imdbId'] = int(nsub_str.replace("IMDb: tt", "").strip())
     return movies
 
 
@@ -386,22 +386,9 @@ def deal_movies(request):
     response = {
         'error': '0'
     }
-    movie_lens = MovieLens.objects.filter()
+    movie_lens = Movie.objects.filter()
     for movie in movie_lens:
-        name = str(movie.movie_name)
-        year = re.search(r'\((\d{4})\)', name)
-        if year:
-            year = year.group(1)
-        else:
-            year = re.search(r'(\d{4})', str(movie.movie_time)).group(1)
-        name = re.sub(r'\(\d{4}\)', '', name)
-        movie.movie_name = name
-        movie.movie_time = year
-        genre = str(movie.movie_type).split('|')
-        genre = str.join(' / ', genre)
-        actors = str(movie.movie_actors).split('|')
-        actors = str.join(' / ', actors)
-        movie.movie_type = genre
-        movie.movie_actors = actors
+        if str(movie.movie_imdb_id) != 'none':
+            movie.movie_imdb_id = str(int(movie.movie_imdb_id))
         movie.save()
     return JsonResponse(response)

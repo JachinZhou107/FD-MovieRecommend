@@ -11,6 +11,11 @@ const routes = [
     alias: '/home'
   },
   {
+    path: '/recommend',
+    name: 'recommend',
+    component: () => import(/* webpackChunkName: "recommend" */ '../views/recommend/RecommendView.vue')
+  },
+  {
     path: '/about',
     name: 'about',
     // route level code-splitting
@@ -30,14 +35,14 @@ const routes = [
     children: [
       {
         path: '',
-        component: () => import(/* webpackChunkName: "user" */ '../views/user/UserInfo.vue'),
+        name: 'userInfo',
+        component: () => import(/* webpackChunkName: "userInfo" */ '../views/user/UserInfo.vue'),
         alias: 'info'
       },
       {
-        // 当 /user/:id/posts 匹配成功
-        // UserPosts 将被渲染到 User 的 <router-view> 内部
         path: 'ratings',
-        // component: UserPosts,
+        name: 'userRatings',
+        component: () => import(/* webpackChunkName: "userRatings" */ '../views/user/UserRatings.vue'),
       },
     ],
   },
@@ -65,12 +70,13 @@ const router = createRouter({
 
 router.beforeEach(async(to, from, next) => {
   console.log(to)
-  if ( to.name === 'account' ) {
+  const pathName = to.matched[0].name
+  if ( pathName === 'account' ) {
     let isLogin = await get('/api/login_info');
     if ( isLogin.login ) {
       next({name: 'home'})
     } else next()
-  } else if ( to.name === 'user' ) {
+  } else if ( pathName === 'user' ) {
     let isLogin = await get('/api/login_info');
     if ( isLogin.login ) {
       next()
@@ -84,7 +90,10 @@ router.beforeEach(async(to, from, next) => {
 router.afterEach((to, from) => {
   if ( to.name !== from.name ) {
     store.commit('changeChooseNavbar', to.name)
-    window.scrollTo(0,0);
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   }
 })
 

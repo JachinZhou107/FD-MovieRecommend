@@ -42,7 +42,7 @@ export default {
 }
 .nav {
   width: 100%;
-  min-width: 1240px;
+  min-width: 940px;
   box-shadow: 0px -10px 20px 0px rgb(var(--primary-9));
   background-color: var(--color-white);
 }
@@ -51,9 +51,9 @@ export default {
   position: relative;
 }
 .footer {
-  margin-top: 32px;
+  margin-top: 24px;
   width: 100%;
-  min-width: 1240px;
+  min-width: 940px;
   height: 200px;
   background-color: var(--color-neutral-8);
 }

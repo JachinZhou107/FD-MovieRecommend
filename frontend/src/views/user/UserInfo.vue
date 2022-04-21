@@ -1,6 +1,6 @@
 <template>
   <div class="avatar">
-    <UserAvatar></UserAvatar>
+    <UserAvatar title="修改头像"></UserAvatar>
   </div>
   <a-form :model="form" :style="{width:'600px'}" @submit="handleSubmit">
     <a-form-item field="username" label="用户名">
@@ -19,6 +19,7 @@ import {useStore} from "vuex";
 import {link} from "@/utils/link";
 
 import UserAvatar from "@/views/user/UserAvatar";
+import {ref} from "vue";
 
 export default {
   name: "UserInfo",
@@ -37,13 +38,16 @@ export default {
   },
   setup() {
     const store = useStore()
+    const loading = ref(true)
     const handleSubmit = async () => {
       const res = await get('/api/logout')
       console.log(res)
       store.commit('changeLoginStatus', {status: false})
       await link('/', 'home')
+      loading.value = false
     }
     return {
+      loading,
       handleSubmit
     }
   }

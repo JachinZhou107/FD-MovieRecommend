@@ -163,6 +163,7 @@ export default {
     })
     const handleOpenRating = () => {
       if (isLogin.value) rating.value = true
+      else router.push('/account')
     }
     const handleSubmitRating = async () => {
       const res = await post('/api/rating_movie',
@@ -204,6 +205,10 @@ export default {
         if ( ratingInfo.error == '0' ) {
           ratingNum.value = ratingInfo.rating
           comments.value = ratingInfo.comments
+        }
+        console.log(route.query)
+        if ( route.query.from == 'user' ) {
+          rating.value = true
         }
       }
 

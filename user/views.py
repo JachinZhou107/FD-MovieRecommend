@@ -188,6 +188,7 @@ def avatar(request):
 def user_ratings(request):
     response = {}
     user_id = request.GET.get('userId')
+    user_id = str(int(user_id)+1000)
     try:
         ratings_qs = MovieRating.objects.filter(user_id=user_id)
         ratings_list = json.loads(serializers.serialize("json", ratings_qs))
@@ -214,11 +215,32 @@ def user_ratings(request):
 
 @require_GET
 def recommend(request):
-    user_id = request.GET.get('userId')
+    response = {}
+    movie_list = []
+    user_id = str(int(request.GET.get('userId'))+1000)
     user_cf = UserBasedCF()
     top_k_user_sim = user_cf.get_user_sim(user_id)
     top_n_movie = user_cf.recommend(user_id, top_k_user_sim)
-    return JsonResponse({'data': top_n_movie})
+    try:
+        for rmovie in top_n_movie:
+            movie_qs = MovieLens.objects.filter(movie_imdb_id=rmovie[0])
+            print(rmovie, len(movie_qs))
+            if len(movie_qs) < 1:
+                movie_qs = Movie.objects.filter(movie_imdb_id=rmovie[0])
+                movie = json.loads(serializers.serialize("json", movie_qs))[0]
+            else:
+                movie = json.loads(serializers.serialize("json", movie_qs))[0]
+                movie['pk'] = 'mr'+str(movie['pk'])
+            movie_list.append(movie)
+        response['movies'] = movie_list
+        response['error'] = 0
+        response['msg'] = 'success'
+    except Exception as e:
+        response['error'] = 1
+        response['msg'] = str(e)
+    return JsonResponse(response)
+
+    # return JsonResponse({'data': top_n_movie})
 
 
 class UserBasedCF(object):
