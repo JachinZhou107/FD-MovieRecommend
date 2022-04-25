@@ -4,14 +4,14 @@ from django.db import models
 # Create your models here.
 class MovieLens(models.Model):
     movie_name = models.CharField(max_length=255, default='')
-    movie_time = models.CharField(max_length=64, null=True, blank=True)
+    movie_time = models.IntegerField(null=True, blank=True)
     movie_title = models.CharField(max_length=128, null=True, blank=True)
     movie_poster = models.CharField(max_length=255, null=True, blank=True)
     movie_country = models.CharField(max_length=128, null=True, blank=True)
     movie_type = models.CharField(max_length=128, null=True, blank=True)
     movie_score = models.CharField(max_length=64, null=True, blank=True)
     movie_score_sum = models.CharField(max_length=64, null=True, blank=True)
-    movie_length = models.CharField(max_length=32, null=True, blank=True)
+    movie_length = models.CharField(max_length=128, null=True, blank=True)
     movie_director = models.CharField(max_length=128, null=True, blank=True)
     movie_actors = models.TextField(null=True, blank=True)
     movie_desc = models.TextField(null=True, blank=True)
@@ -26,14 +26,14 @@ class MovieLens(models.Model):
 
 class Movie(models.Model):
     movie_name = models.CharField(max_length=255, default='')
-    movie_time = models.CharField(max_length=64, null=True, blank=True)
+    movie_time = models.IntegerField(null=True, blank=True)
     movie_title = models.CharField(max_length=128, null=True, blank=True)
     movie_poster = models.CharField(max_length=255, null=True, blank=True)
     movie_country = models.CharField(max_length=128, null=True, blank=True)
     movie_type = models.CharField(max_length=128, null=True, blank=True)
     movie_score = models.CharField(max_length=64, null=True, blank=True)
     movie_score_sum = models.CharField(max_length=64, null=True, blank=True)
-    movie_length = models.CharField(max_length=32, null=True, blank=True)
+    movie_length = models.CharField(max_length=128, null=True, blank=True)
     movie_director = models.CharField(max_length=128, null=True, blank=True)
     movie_actors = models.TextField(null=True, blank=True)
     movie_desc = models.TextField(null=True, blank=True)
@@ -51,7 +51,7 @@ class MovieRating(models.Model):
     user_id = models.CharField(max_length=32, default='none')
     rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True)
     comments = models.TextField(blank=True, null=True)
-    time_stamp = models.CharField(max_length=32, default='1648699200')
+    time_stamp = models.BigIntegerField(default=1648699200)
     likes = models.IntegerField(default=0)
 
     def __str__(self):

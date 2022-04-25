@@ -184,11 +184,63 @@ def avatar(request):
         return JsonResponse(response)
 
 
+@require_POST
+def get_user_rating(request):
+    response = {}
+    data = json.loads(request.body)
+    movie_imdb_id = data['movieImdbId']
+    user_id = str(int(data['userId']) + 1000)
+    try:
+        rating_item = MovieRating.objects.get(movie_imdb_id=movie_imdb_id, user_id=user_id)
+        response['rating'] = float(rating_item.rating)
+        response['comments'] = str(rating_item.comments)
+        response['time_stamp'] = str(rating_item.time_stamp)
+        response['msg'] = 'success'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
+    return JsonResponse(response)
+
+
+@require_POST
+def rating_movie(request):
+    response = {}
+    data = json.loads(request.body)
+    movie_imdb_id = data['movieImdbId']
+    rating = data['rating']
+    comments = data['comments']
+    time_stamp = int(datetime.now().timestamp())
+    user_id = str(int(data['userId']) + 1000)
+    try:
+        movie_rating_set = MovieRating.objects.filter(user_id=user_id, movie_imdb_id=movie_imdb_id)
+        if len(movie_rating_set) > 0:
+            movie_rating = movie_rating_set[0]
+        else:
+            movie_rating = MovieRating()
+
+        movie_rating.movie_imdb_id = movie_imdb_id
+        movie_rating.user_id = user_id
+        movie_rating.rating = rating
+        movie_rating.comments = comments
+        movie_rating.time_stamp = time_stamp
+        update_sim(1, movie_rating)
+        movie_rating.save()
+        response['msg'] = 'success'
+        response['error'] = 0
+        return JsonResponse(response)
+    except Exception as e:
+        response['msg'] = str(e)
+        response['error'] = 1
+    return JsonResponse(response)
+
+
 @require_GET
 def user_ratings(request):
     response = {}
     user_id = request.GET.get('userId')
-    user_id = str(int(user_id)+1000)
+    user_id = str(int(user_id) + 1000)
     try:
         ratings_qs = MovieRating.objects.filter(user_id=user_id)
         ratings_list = json.loads(serializers.serialize("json", ratings_qs))
@@ -199,7 +251,7 @@ def user_ratings(request):
                 movie_qs = Movie.objects.filter(movie_imdb_id=rating['fields']['movie_imdb_id'])
                 movie['movieId'] = str(movie_qs[0].id)
             else:
-                movie['movieId'] = 'mr'+str(movie_qs[0].id)
+                movie['movieId'] = 'mr' + str(movie_qs[0].id)
             movie['movieName'] = str(movie_qs[0].movie_name)
             movie['movieTitle'] = str(movie_qs[0].movie_title)
             movie['moviePoster'] = str(movie_qs[0].movie_poster)
@@ -214,25 +266,52 @@ def user_ratings(request):
 
 
 @require_GET
+def delete_user_rating(request):
+    response = {}
+    user_id = str(int(request.GET.get('userId')) + 1000)
+    rating_id = request.GET.get('ratingId')
+    # try:
+    rating_qs = MovieRating.objects.get(id=rating_id)
+    if str(rating_qs.user_id) == user_id:
+        update_sim(0, rating_qs)
+        rating_qs.delete()
+        response['msg'] = '删除评论成功'
+        response['error'] = 0
+    else:
+        response['msg'] = '删除评论失败'
+        response['error'] = 1
+    # except Exception as e:
+    #     response['msg'] = '评论不存在'
+    #     response['error'] = 1
+    return JsonResponse(response)
+
+
+def get_recommend(cf, user_id):
+    movie_list = []
+    top_n_movie = cf.recommend(user_id)
+    for rmovie in top_n_movie:
+        movie_qs = MovieLens.objects.filter(movie_imdb_id=rmovie[0])
+        print(rmovie, len(movie_qs))
+        if len(movie_qs) < 1:
+            movie_qs = Movie.objects.filter(movie_imdb_id=rmovie[0])
+            movie = json.loads(serializers.serialize("json", movie_qs))[0]
+        else:
+            movie = json.loads(serializers.serialize("json", movie_qs))[0]
+            movie['pk'] = 'mr' + str(movie['pk'])
+        movie_list.append(movie)
+    return movie_list
+
+
+@require_GET
 def recommend(request):
     response = {}
     movie_list = []
-    user_id = str(int(request.GET.get('userId'))+1000)
+    user_id = str(int(request.GET.get('userId')) + 1000)
     user_cf = UserBasedCF()
-    top_k_user_sim = user_cf.get_user_sim(user_id)
-    top_n_movie = user_cf.recommend(user_id, top_k_user_sim)
+    item_cf = ItemBasedCF()
     try:
-        for rmovie in top_n_movie:
-            movie_qs = MovieLens.objects.filter(movie_imdb_id=rmovie[0])
-            print(rmovie, len(movie_qs))
-            if len(movie_qs) < 1:
-                movie_qs = Movie.objects.filter(movie_imdb_id=rmovie[0])
-                movie = json.loads(serializers.serialize("json", movie_qs))[0]
-            else:
-                movie = json.loads(serializers.serialize("json", movie_qs))[0]
-                movie['pk'] = 'mr'+str(movie['pk'])
-            movie_list.append(movie)
-        response['movies'] = movie_list
+        response['moviesUserCF'] = get_recommend(user_cf, user_id)
+        response['moviesItemCF'] = get_recommend(item_cf, user_id)
         response['error'] = 0
         response['msg'] = 'success'
     except Exception as e:
@@ -240,58 +319,209 @@ def recommend(request):
         response['msg'] = str(e)
     return JsonResponse(response)
 
-    # return JsonResponse({'data': top_n_movie})
+
+# 用户-电影表
+user2movie = dict()
+# 物体-用户表
+movie2users = dict()
+
+
+def calc_user_sim():
+    if len(movie2users) == 0 or len(user2movie) == 0:
+        for rating_item in MovieRating.objects.filter():
+            movie = str(rating_item.movie_imdb_id)
+            user = str(rating_item.user_id)
+            rating = str(rating_item.rating)
+            user2movie.setdefault(user, {})
+            user2movie[user][movie] = float(rating)
+            if movie not in movie2users:
+                movie2users[movie] = set()
+            movie2users[movie].add(user)
+    # 用户相似度字典
+    UserBasedCF.user_sim_dct = dict()
+    '''获取用户之间的相似度,存放在user_sim_dct中'''
+    for movie, users in movie2users.items():
+        for u in users:
+            for v in users:
+                if u == v:
+                    continue
+                UserBasedCF.user_sim_dct.setdefault(u, {})
+                UserBasedCF.user_sim_dct[u].setdefault(v, 0)
+                UserBasedCF.user_sim_dct[u][v] += 1 / math.log(1 + len(users))
+    for u, users in UserBasedCF.user_sim_dct.items():
+        for v, count in users.items():
+            UserBasedCF.user_sim_dct[u][v] = count / math.sqrt(len(user2movie[u]) * len(user2movie[v]))
+
+    # 按照key排序value，返回K个最相近的用户
+    print("user similarity calculated!")
+    # 格式是 [ (user, value), (user, value), ... ]
+    return
+
+
+def calc_movie_sim():
+    if len(movie2users) == 0 or len(user2movie) == 0:
+        for rating_item in MovieRating.objects.filter():
+            movie = str(rating_item.movie_imdb_id)
+            user = str(rating_item.user_id)
+            rating = str(rating_item.rating)
+            user2movie.setdefault(user, {})
+            user2movie[user][movie] = float(rating)
+            if movie not in movie2users:
+                movie2users[movie] = set()
+            movie2users[movie].add(user)
+    # 物品相似度字典
+    ItemBasedCF.movie_sim_dct = dict()
+    '''获取物品之间的相似度,存放在movie_sim_dct中'''
+    for user, movies in user2movie.items():
+        for u in movies:
+            for v in movies:
+                if u == v:
+                    continue
+                ItemBasedCF.movie_sim_dct.setdefault(u, {})
+                ItemBasedCF.movie_sim_dct[u].setdefault(v, 0)
+                ItemBasedCF.movie_sim_dct[u][v] += 1 / math.log(1 + len(movies))
+    for u, movies in ItemBasedCF.movie_sim_dct.items():
+        for v, count in movies.items():
+            ItemBasedCF.movie_sim_dct[u][v] = count / math.sqrt(len(movie2users[u]) * len(movie2users[v]))
+
+    print("movie similarity calculated!")
+    return
+
+
+def update_sim(method, rating):
+    movie_id = str(rating.movie_imdb_id)
+    user_id = str(rating.user_id)
+
+    UserBasedCF.user_sim_dct.pop(user_id, {})
+    for movie, users in movie2users.items():
+        if user_id in users:
+            for u in users:
+                if u == user_id:
+                    continue
+                UserBasedCF.user_sim_dct[u].pop(user_id, {})
+
+    ItemBasedCF.movie_sim_dct.pop(movie_id, {})
+    for user, movies in user2movie.items():
+        if movies.get(movie_id, 'none') != 'none':
+            for movie in movies:
+                if movie == movie_id:
+                    continue
+                ItemBasedCF.movie_sim_dct[movie].pop(movie_id, {})
+
+    if method == 1:
+        user2movie.setdefault(user_id, {})
+        user2movie[user_id][movie_id] = float(str(rating.rating))
+        if movie_id not in movie2users:
+            movie2users[movie_id] = set()
+        movie2users[movie_id].add(user_id)
+    elif method == 0:
+        user2movie[user_id].pop(movie_id, {})
+        movie2users[movie_id].remove(user_id)
+
+    if len(movie2users[movie_id]) == 0:
+        movie2users.pop(movie_id, {})
+
+    if len(user2movie[user_id]) == 0:
+        user2movie.pop(user_id, {})
+
+    for movie, users in movie2users.items():
+        if user_id in users:
+            for u in users:
+                if u == user_id:
+                    continue
+                # 新增评价时，之前相似度表中可能两个用户都没有字段
+                UserBasedCF.user_sim_dct.setdefault(u, {})
+                UserBasedCF.user_sim_dct[u].setdefault(user_id, 0)
+                UserBasedCF.user_sim_dct.setdefault(user_id, {})
+                UserBasedCF.user_sim_dct[user_id].setdefault(u, 0)
+                UserBasedCF.user_sim_dct[u][user_id] += 1 / math.log(1 + len(users))
+                UserBasedCF.user_sim_dct[user_id][u] = UserBasedCF.user_sim_dct[u][user_id]
+
+    if user_id in UserBasedCF.user_sim_dct:
+        for u, count in UserBasedCF.user_sim_dct[user_id].items():
+            UserBasedCF.user_sim_dct[user_id][u] = count / math.sqrt(len(user2movie[u]) * len(user2movie[user_id]))
+            UserBasedCF.user_sim_dct[u][user_id] = UserBasedCF.user_sim_dct[user_id][u]
+
+    print("user similarity updated!")
+
+    for user, movies in user2movie.items():
+        if movies.get(movie_id, 'none') != 'none':
+            for movie in movies:
+                if movie == movie_id:
+                    continue
+                ItemBasedCF.movie_sim_dct.setdefault(movie, {})
+                ItemBasedCF.movie_sim_dct[movie].setdefault(movie_id, 0)
+                ItemBasedCF.movie_sim_dct.setdefault(movie_id, {})
+                ItemBasedCF.movie_sim_dct[movie_id].setdefault(movie, 0)
+                ItemBasedCF.movie_sim_dct[movie][movie_id] += 1 / math.log(1 + len(movies))
+                ItemBasedCF.movie_sim_dct[movie_id][movie] = ItemBasedCF.movie_sim_dct[movie][movie_id]
+
+    if movie_id in ItemBasedCF.movie_sim_dct:
+        for movie, count in ItemBasedCF.movie_sim_dct[movie_id].items():
+            ItemBasedCF.movie_sim_dct[movie_id][movie] = count / math.sqrt(
+                len(movie2users[movie]) * len(movie2users[movie_id]))
+            ItemBasedCF.movie_sim_dct[movie][movie_id] = ItemBasedCF.movie_sim_dct[movie_id][movie]
+
+    print("movie similarity updated!")
+    return
 
 
 class UserBasedCF(object):
+    # 用户相似度
+    user_sim_dct = dict()
+
     def __init__(self):
         # 最相似的30个用户
         self.K = 30
         # 推荐出10部影片
         self.N = 10
-        # 用户评分电影数据
-        self.rating = dict()
+        if len(UserBasedCF.user_sim_dct) == 0:
+            calc_user_sim()
 
-    def get_user_sim(self, user_id):
-        # 物体-用户倒序表
-        movie2users = dict()
-        for rating_item in MovieRating.objects.filter():
-            movie = str(rating_item.movie_imdb_id)
-            user = str(rating_item.user_id)
-            rating = str(rating_item.rating)
-            self.rating.setdefault(user, {})
-            self.rating[user][movie] = float(rating)
-            if movie not in movie2users:
-                movie2users[movie] = set()
-            movie2users[movie].add(user)
-        # 用户相似度字典
-        user_sim_dct = dict()
-        '''获取用户之间的相似度,存放在user_sim_dct中'''
-        for movie, users in movie2users.items():
-            for u in users:
-                for v in users:
-                    if u == v:
-                        continue
-                    user_sim_dct.setdefault(u, {})
-                    user_sim_dct[u].setdefault(v, 0)
-                    user_sim_dct[u][v] += 1 / math.log(1 + len(users))
-        for u, users in user_sim_dct.items():
-            for v, count in users.items():
-                user_sim_dct[u][v] = count / math.sqrt(len(self.rating[u]) * len(self.rating[v]))
-
-        # 按照key排序value，返回K个最相近的用户
-        print("user similarity calculated!")
-        # 格式是 [ (user, value), (user, value), ... ]
-        return sorted(user_sim_dct[user_id].items(), key=lambda x: -x[1])[:self.K]
-
-    def recommend(self, user_id, k_sim_users):
+    def recommend(self, user_id):
         rank = dict()
+        print('user2movie', user2movie.get(user_id, 'none'))
+        if user2movie.get(user_id, 'none') == 'none':
+            return rank
+        k_sim_users = sorted(UserBasedCF.user_sim_dct[user_id].items(), key=lambda x: -x[1])[:self.K]
         for sim_user, factor in k_sim_users:
-            for imdb_id in self.rating[sim_user]:
-                if imdb_id in self.rating[user_id]:
+            for imdb_id in user2movie[sim_user]:
+                if imdb_id in user2movie[user_id]:
                     continue
                 rank.setdefault(imdb_id, 0)
-                rank[imdb_id] += factor*self.rating[sim_user][imdb_id]
+                rank[imdb_id] += factor * user2movie[sim_user][imdb_id]
+        rank_n = sorted(rank.items(), key=lambda x: -x[1])[:self.N]
+        print('user2movie', rank_n)
+        return rank_n
+
+
+class ItemBasedCF(object):
+    # 物品（影片）似度
+    movie_sim_dct = dict()
+
+    def __init__(self):
+        # 最相似的30个影片
+        self.K = 30
+        # 推荐出10部影片
+        self.N = 10
+        if len(ItemBasedCF.movie_sim_dct) == 0:
+            calc_movie_sim()
+
+    def recommend(self, user_id):
+        rank = dict()
+        if user2movie.get(user_id, 'none') == 'none':
+            return rank
+        for movie, rating_num in user2movie[user_id].items():
+            for sim_movie, factor in sorted(ItemBasedCF.movie_sim_dct[movie].items(), key=lambda x: -x[1])[:self.K]:
+                if user2movie[user_id].get(sim_movie, 'none') != 'none':
+                    continue
+                rank.setdefault(sim_movie, 0)
+                rank[sim_movie] += factor * rating_num
         rank_n = sorted(rank.items(), key=lambda x: -x[1])[:self.N]
         print(rank_n)
         return rank_n
+
+
+calc_movie_sim()
+calc_user_sim()
+

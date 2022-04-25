@@ -1,6 +1,6 @@
 <template>
   <a-comment
-    datetime="2 天前"
+    :datetime="getCommentTime(item)"
     align="right"
   >
     <template #actions>
@@ -44,7 +44,16 @@
 <script>
 export default {
   name: "CommentSection",
-  props: ['item']
+  props: ['item'],
+  setup() {
+    const getCommentTime = (item) => {
+      const timestamp = new Date(parseInt(item.fields.time_stamp) * 1000);
+      return timestamp.toLocaleString().split(' ')[0];
+    }
+    return {
+      getCommentTime,
+    }
+  }
 }
 </script>
 

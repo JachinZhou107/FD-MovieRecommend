@@ -1,57 +1,65 @@
 <template>
   <div class="recommend">
-    <a-card
-      class="card" title="和你有相似爱好的用户还喜欢">
-      <template #extra>
-        <a-link @click="userCFMore=!userCFMore">
-          {{userCFMore?'收起':'更多'}}
-          <template #icon>
-            <icon-up v-if="userCFMore" />
-            <icon-down v-else/>
+    <a-spin :loading="loadingRecommend" dot style="width: 100%">
+      <a-card
+        class="card" title="和你有相似爱好的用户还喜欢">
+        <template #extra>
+          <a-link @click="userCFMore=!userCFMore">
+            {{userCFMore?'收起':'更多'}}
+            <template #icon>
+              <icon-up v-if="userCFMore" />
+              <icon-down v-else/>
+            </template>
+          </a-link>
+        </template>
+        <a-space wrap size="medium" :class="{'movies-box': true, 'open-box': userCFMore }">
+          <template v-for="(item, index) in userCFData" :key="item.pk">
+            <MovieCard v-if="index<5||userCFMore"  :item="item">
+              <template v-slot:title>
+                <span>
+                  {{item.fields.movie_title || item.fields.movie_name}}
+                </span>
+              </template>
+              <template v-slot:desc>
+                <div class="desc-box">
+                  上映时间：{{item.fields.movie_time || '未知'}}<br>
+                  豆瓣评分：{{item.fields.movie_score || '暂无'}}
+                </div>
+              </template>
+            </MovieCard>
           </template>
-        </a-link>
-      </template>
-      <a-space wrap size="large">
-        <MovieCard v-for="item in userCFData.slice(0,5)" :key="item.pk" :item="item">
-          <template v-slot:title>
-            <span>
-              {{item.fields.movie_title || item.fields.movie_name}}
-            </span>
+        </a-space>
+      </a-card>
+      <a-card
+        class="card" title="和你感兴趣的影片相似的影片有">
+        <template #extra>
+          <a-link @click="itemCFMore=!itemCFMore">
+            {{itemCFMore?'收起':'更多'}}
+            <template #icon>
+              <icon-up v-if="itemCFMore" />
+              <icon-down v-else/>
+            </template>
+          </a-link>
+        </template>
+        <a-space wrap size="medium" :class="{'movies-box': true, 'open-box': itemCFMore }">
+          <template v-for="(item, index) in itemCFData" :key="item.pk">
+            <MovieCard v-if="index<5||itemCFMore"  :item="item">
+              <template v-slot:title>
+                <span>
+                  {{item.fields.movie_title || item.fields.movie_name}}
+                </span>
+              </template>
+              <template v-slot:desc>
+                <div class="desc-box">
+                  上映时间：{{item.fields.movie_time || '未知'}}<br>
+                  豆瓣评分：{{item.fields.movie_score || '暂无'}}
+                </div>
+              </template>
+            </MovieCard>
           </template>
-          <template v-slot:desc>
-            <div class="desc-box">
-              上映时间：{{item.fields.movie_time || '未知'}}<br>
-              豆瓣评分：{{item.fields.movie_score || '暂无'}}
-            </div>
-          </template>
-        </MovieCard>
-      </a-space>
-      <a-space v-if="userCFMore" wrap size="large">
-        <MovieCard v-for="item in userCFData.slice(5)" :key="item.pk" :item="item">
-          <template v-slot:title>
-            <span>
-              {{item.fields.movie_title || item.fields.movie_name}}
-            </span>
-          </template>
-          <template v-slot:desc>
-            <div class="desc-box">
-              上映时间：{{item.fields.movie_time || '未知'}}<br>
-              豆瓣评分：{{item.fields.movie_score || '暂无'}}
-            </div>
-          </template>
-        </MovieCard>
-      </a-space>
-    </a-card>
-    <a-card
-      class="card"
-      title="Custom hover style"
-    >
-      <template #extra>
-        <a-link>More</a-link>
-      </template>
-      Card content <br />
-      Card content
-    </a-card>
+        </a-space>
+      </a-card>
+    </a-spin>
   </div>
 </template>
 
@@ -67,13 +75,22 @@ export default {
     const store = useStore()
     const userCFData = ref([])
     const userCFMore = ref(false)
+    const itemCFData = ref([])
+    const itemCFMore = ref(false)
+    const loadingRecommend = ref(false)
     onMounted(async ()=>{
+      loadingRecommend.value = true
       const res = await get('/api/recommend', {userId: store.state.userInfo.userId})
-      userCFData.value = res.movies
+      userCFData.value = res.moviesUserCF
+      itemCFData.value = res.moviesItemCF
+      loadingRecommend.value = false
     })
     return {
       userCFData,
-      userCFMore
+      userCFMore,
+      itemCFData,
+      itemCFMore,
+      loadingRecommend
     }
   }
 }
@@ -83,13 +100,31 @@ export default {
 .recommend {
   margin: 20px auto 0;
   padding: 0 20px;
-  max-width: 1200px;
-  min-width: 900px;
+  width: 1120px;
   display: flex;
   flex-direction: column;
   .card {
     margin-bottom: 24px;
     width: 100%;
+    .movies-box {
+      margin-left: 0;
+      &.open-box {
+        margin-left: 22px;
+      }
+    }
+  }
+}
+@media screen and (max-width: 1160px){
+  .recommend {
+    width: 900px;
+    .card{
+       .movies-box {
+         margin-left: 20px;
+         &.open-box {
+           margin-left: 20px;
+         }
+       }
+    }
   }
 }
 </style>

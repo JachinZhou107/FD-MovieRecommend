@@ -71,7 +71,7 @@
             <h2>电影评价</h2>
           </div>
           <div class="main">
-            <template v-for="item in movieRaingList" :key="item.pk">
+            <template v-for="item in movieRatingList" :key="item.pk">
               <CommentSection :item="item"/>
               <a-divider />
             </template>
@@ -102,7 +102,8 @@
     <a-modal
         v-model:visible="rating"
         ok-text="提交评价"
-        @ok="handleSubmitRating"
+        :on-before-ok="handleSubmitRating"
+        unmountOnClose
     >
       <template #title>
         写短评
@@ -146,7 +147,7 @@ export default {
       fields: {},
       movieId: ''
     })
-    const movieRaingList = ref([])
+    const movieRatingList = ref([])
     const movieScore = ref(0)
     const movieScoreCount = ref(0)
     const loading = ref(true)
@@ -161,6 +162,14 @@ export default {
     const isLogin = computed(()=>{
       return store.state.loginStatus
     })
+    const getMovieRatings = async () => {
+      const movieRatings = await post('/api/get_movie_ratings', {
+        movieImdbId: movieInfo.fields.movie_imdb_id
+      })
+      console.log(movieRatings)
+      if ( movieRatings.error == '0' )
+        movieRatingList.value = movieRatings.list
+    }
     const handleOpenRating = () => {
       if (isLogin.value) rating.value = true
       else router.push('/account')
@@ -173,6 +182,9 @@ export default {
             comments: comments.value,
             userId: store.state.userInfo.userId
           })
+      if ( res.error == 0 ) {
+        await getMovieRatings()
+      }
       console.log(res)
       rating.value = false
     }
@@ -192,11 +204,7 @@ export default {
         errorMsg.value = movie.msg
         loading.value = false
       }
-      const movieRatings = await post('/api/get_movie_ratings', { movieImdbId: movieInfo.fields.movie_imdb_id })
-      console.log(movieRatings)
-      if ( movieRatings.error == '0' )
-        movieRaingList.value = movieRatings.list
-
+      await getMovieRatings()
       if (isLogin.value) {
         const ratingInfo = await post('/api/get_user_rating', {
           movieImdbId: movieInfo.fields.movie_imdb_id,
@@ -206,7 +214,6 @@ export default {
           ratingNum.value = ratingInfo.rating
           comments.value = ratingInfo.comments
         }
-        console.log(route.query)
         if ( route.query.from == 'user' ) {
           rating.value = true
         }
@@ -215,7 +222,7 @@ export default {
     })
     return {
       movieInfo,
-      movieRaingList,
+      movieRatingList,
       movieScore,
       movieScoreCount,
       loading,
@@ -236,7 +243,7 @@ export default {
 .film {
   .banner {
     width: 100%;
-    min-width: 1240px;
+    min-width: 940px;
     background: #392f59 url(https://s3plus.meituan.net/v1/mss_e2821d7f0cfe4ac1bf9202ecf9590e67/cdn-prod/file:5788b470/banner_bg.f7fd103e3b8c16b6f449cce43fc57f45.png) no-repeat center/cover;
     .info {
       margin: 0 auto;
@@ -351,6 +358,27 @@ export default {
       }
     }
   }
+}
+@media screen and (max-width: 1140px){
+  .film {
+    .banner {
+      .info {
+        width: 900px;
+        margin-left: 24px;
+      }
+    }
+    .content-container {
+      width: 860px;
+      padding: 0 40px;
+      .content {
+        padding-right: 0;
+      }
+      .sider {
+        display: none;
+      }
+    }
+  }
+
 }
 </style>
 

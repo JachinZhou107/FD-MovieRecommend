@@ -5,7 +5,12 @@
     </template>
     <a-list-item v-for="(item) in data" :key="item.pk">
       <template #actions>
-        <icon-pen style="padding-left: 24px" size="20" @click="handleEditRating(item.movie.movieId)"/>
+        <icon-edit style="padding-left: 24px" size="20" @click="handleEditRating(item.movie.movieId)"/>
+        <a-popconfirm content="确定删除这条评论?" position="right" :ok-button-props="{status: 'danger'}"
+                      :on-before-ok="()=>handleDeleteRating(item.pk)?true:false" :on-before-cancel="handleCloseDeleting">
+          <icon-delete style="padding-left: 24px" size="20" />
+        </a-popconfirm>
+
       </template>
       <a-list-item-meta>
         <template #avatar>
@@ -16,9 +21,9 @@
           </div>
         </template>
         <template #title>
-          <div class="title-box">
+          <router-link :to="{ name: 'films', params: { filmId: item.movie.movieId } }" class="title-box">
             {{`${item.movie.movieTitle} ${item.movie.movieName}`}}
-          </div>
+          </router-link>
         </template>
         <template #description>
           <a-rate readonly :default-value="item.fields.rating">
@@ -48,16 +53,30 @@ export default {
     const handleEditRating = (movieId) => {
       router.push({name: 'films', params: {filmId: movieId}, query: { from: 'user'}})
     }
+    let deleteDone = true
+    const handleDeleteRating = async (ratingId) => {
+      deleteDone = false
+      const res = await get('/api/delete_rating', {userId: store.state.userInfo.userId, ratingId})
+      if ( res.error == 0 ) {
+        deleteDone = true
+        const res = await get('/api/user_ratings', { userId: store.state.userInfo.userId })
+        data.value = res['ratings']
+      }
+      return deleteDone
+    }
+    const handleCloseDeleting = () => deleteDone
     onMounted(async ()=>{
+      loading.value = true
       const res = await get('/api/user_ratings', { userId: store.state.userInfo.userId })
       data.value = res['ratings']
-      console.log(data)
       loading.value = false
     })
     return {
       data,
       loading,
-      handleEditRating
+      handleEditRating,
+      handleDeleteRating,
+      handleCloseDeleting
     }
   }
 }
@@ -67,9 +86,12 @@ export default {
 .list-box {
   text-align: left;
   padding-left: 24px;
-  width: 600px;
+  width: 660px;
   .title-box {
+    display: inline-block;
     margin-bottom: 10px;
+    text-decoration-line: none;
+    font-size: 16px;
   }
 }
 </style>

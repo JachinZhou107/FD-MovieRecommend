@@ -14,7 +14,11 @@
     <div class="list-type">
       <h2>选择搜索影单：</h2>
       <div class="type">
-        <a-radio-group type="button" size="large" v-model:model-value="pageParams.movieSet" @change="handleSearchMovie">
+        <a-radio-group
+            type="button" size="large"
+            v-model:model-value="pageParams.movieSet"
+            @change="handleSearchMovie"
+        >
           <a-radio :value="0">最近热门</a-radio>
           <a-radio :value="1">推荐评分</a-radio>
         </a-radio-group>
@@ -46,7 +50,7 @@
           <dd>1. 请检查输入的关键词是否有误</dd>
           <dd>2. 国外电影可尝试搜索电影原名、英文名而不是中文名</dd>
           <dd>3. 切换搜索影单</dd>
-          <dd>或者，亲自来帮本站添加</dd>
+          <dd>或者，使用精确搜索功能</dd>
         </dl>
       </div>
       <div class="movies-paginator" v-if="totalElements>0">
@@ -61,6 +65,7 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script>
@@ -164,7 +169,7 @@ export default {
 
 <style lang="scss" scoped>
 .search {
-  min-width: 1240px;
+  min-width: 940px;
   width: 100%;
 }
 .banner {
@@ -186,14 +191,14 @@ export default {
 .list-type {
   width: 880px;
   display: flex;
-  margin: 0 auto;
+  margin: 24px auto 0;
   .type {
     margin: auto 12px;
   }
 }
 .result {
   width: 880px;
-  margin: 24px auto 0;
+  margin: 24px auto 48px;
   padding-left: 24px;
   h1 {
     text-align: left;

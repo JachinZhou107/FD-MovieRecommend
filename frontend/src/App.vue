@@ -12,7 +12,9 @@
     <div class="footer">
 
     </div>
-    <a-back-top :style="{position:'fixed'}" />
+    <a-back-top :style="{position:'fixed', bottom: '64px', right: '48px'}" title="回到顶部">
+      <a-button type="primary"> <icon-up :size="16"></icon-up> </a-button>
+    </a-back-top>
   </div>
 </template>
 

@@ -13,6 +13,7 @@ import json
 import execjs
 
 from user.models import User
+from user.views import UserBasedCF
 from .models import Movie, MovieRating, MovieLens
 
 from datetime import date, datetime
@@ -106,7 +107,7 @@ def spider_search_movie(movie_name, movie_year):
                 r = re.search(r'\(\d{4}\)$', item.get('title', 'none'))
                 if r:
                     item_year = r.group(0)
-                    item_year = item_year.replace('(', '').replace(')', '')
+                    item_year = int(item_year.replace('(', '').replace(')', ''))
                     if item_year == movie_year:
                         movie_url = item['url']
                         print(movie_year, item_year)
@@ -153,8 +154,9 @@ def add_movie_info(movie_info):
     if len(old_movies) > 0:
         movie = old_movies[0]
         if len(old_movies) > 1:
-            for i in range(1, len(old_movies)):
-                old_movies[i].delete()
+            for dou_movie in old_movies:
+                if str(dou_movie.movie_imdb_id) != str(movie.movie_imdb_id):
+                    dou_movie.delete()
     else:
         movie = Movie()
         movie.save()
@@ -171,7 +173,7 @@ def add_movie(request):
         response['error'] = 1
         return JsonResponse(response)
     add_movie_info(movie)
-    response['movie_info'] = movie
+    response['movie'] = movie
     response['msg'] = 'success'
     response['error'] = 0
     return JsonResponse(response)
@@ -199,13 +201,20 @@ def show_movies(request):
     try:
         # print(sources[source_id], years[year_id], catsEn[cat_id])
         if list_type == 0:
-            movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id],
-                                          movie_time__contains=years[year_id])
+            movies = Movie.objects.filter(movie_country__contains=sources[source_id], movie_type__contains=cats[cat_id])
+            if 0 < year_id <= 12:
+                movies = movies.filter(movie_time=int(years[year_id]))
+            elif year_id == 13:
+                movies = movies.filter(movie_time__gte=2000, movie_time__lte=2010)
+            elif year_id > 13:
+                movies = movies.filter(movie_time__lt=2000)
         else:
-            movies = MovieLens.objects.filter(Q(movie_type__icontains=catsEn[cat_id],
-                                              movie_time__icontains=years[year_id]) |
-                                              Q(movie_type__contains=catsZn[cat_id],
-                                                movie_time__icontains=years[year_id])).order_by('-movie_time', 'id')
+            movies = MovieLens.objects.filter(Q(movie_type__icontains=catsEn[cat_id]) |
+                                              Q(movie_type__contains=catsZn[cat_id])).order_by('-movie_time', 'id')
+            if 19 >= year_id > 0:
+                movies = movies.filter(movie_time=int(years[year_id]))
+            elif year_id > 19:
+                movies = movies.filter(movie_time__lt=2000)
         paged_movies = Paginator(movies, page_size)
         res_page = paged_movies.page(page).object_list
         total_pages = paged_movies.num_pages
@@ -303,63 +312,12 @@ def search_movie(request):
 
 
 @require_http_methods(['POST'])
-def rating_movie(request):
-    response = {}
-    data = json.loads(request.body)
-    movie_imdb_id = data['movieImdbId']
-    rating = data['rating']
-    comments = data['comments']
-    time_stamp = str(datetime.now().timestamp())
-    user_id = str(int(data['userId']) + 1000)
-    try:
-        movie_rating_set = MovieRating.objects.filter(user_id=user_id, movie_imdb_id=movie_imdb_id)
-        if len(movie_rating_set) > 0:
-            movie_rating = movie_rating_set[0]
-        else:
-            movie_rating = MovieRating()
-
-        movie_rating.movie_imdb_id = movie_imdb_id
-        movie_rating.user_id = user_id
-        movie_rating.rating = rating
-        movie_rating.comments = comments
-        movie_rating.time_stamp = time_stamp
-        movie_rating.save()
-        response['msg'] = 'success'
-        response['error'] = 0
-        return JsonResponse(response)
-    except Exception as e:
-        response['msg'] = str(e)
-        response['error'] = 1
-    return JsonResponse(response)
-
-
-@require_http_methods(['POST'])
-def get_user_rating(request):
-    response = {}
-    data = json.loads(request.body)
-    movie_imdb_id = data['movieImdbId']
-    user_id = str(int(data['userId']) + 1000)
-    try:
-        rating_item = MovieRating.objects.get(movie_imdb_id=movie_imdb_id, user_id=user_id)
-        response['rating'] = float(rating_item.rating)
-        response['comments'] = str(rating_item.comments)
-        response['time_stamp'] = str(rating_item.time_stamp)
-        response['msg'] = 'success'
-        response['error'] = 0
-        return JsonResponse(response)
-    except Exception as e:
-        response['msg'] = str(e)
-        response['error'] = 1
-    return JsonResponse(response)
-
-
-@require_http_methods(['POST'])
 def get_movie_ratings(request):
     response = {}
     data = json.loads(request.body)
     movie_imdb_id = data['movieImdbId']
     try:
-        rating_items = MovieRating.objects.filter(movie_imdb_id=movie_imdb_id)
+        rating_items = MovieRating.objects.filter(movie_imdb_id=movie_imdb_id).order_by('-time_stamp')
         rating_list = json.loads(serializers.serialize("json", rating_items))
         for item in rating_list:
             user_id = int(item['fields']['user_id']) - 1000
